@@ -1,0 +1,69 @@
+ // Supabase Configuration
+// 请在这里设置您的 Supabase 项目配置
+// 您可以从 Supabase Dashboard 获取这些信息: https://app.supabase.com/
+
+const SUPABASE_CONFIG = {
+    // 请将下面的URL替换为您的实际 Supabase 项目 URL
+    // 示例: 'https://your-project-id.supabase.co'
+    SUPABASE_URL: 'https://your-project-id.supabase.co',
+    
+    // 请将下面的密钥替换为您的实际 Supabase anon 公钥
+    // 示例: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+    SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImliaXJzaWVhZW96aHN2bGVlZ3JpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4OTQ5MzIsImV4cCI6MjA2OTQ3MDkzMn0.MYzEhk1XYS9d4n-ToLZIb4AsUjzoiOndNeIqdDdY0SM',
+    
+    // 数据库表名配置
+    TABLES: {
+        USERS: 'users',
+        SETTINGS: 'settings', 
+        KNOWLEDGE: 'knowledge'
+    },
+    
+    // 实时订阅配置
+    REALTIME_CONFIG: {
+        // 是否启用实时更新
+        ENABLED: true,
+        // 重连间隔（毫秒）
+        RECONNECT_INTERVAL: 3000,
+        // 最大重连次数
+        MAX_RECONNECT_ATTEMPTS: 5
+    }
+};
+
+// 检查 Supabase 配置是否已设置
+function isSupabaseConfigured() {
+    return SUPABASE_CONFIG.SUPABASE_URL && 
+           SUPABASE_CONFIG.SUPABASE_URL !== 'https://your-project-id.supabase.co' && 
+           SUPABASE_CONFIG.SUPABASE_ANON_KEY && 
+           SUPABASE_CONFIG.SUPABASE_ANON_KEY !== 'your-supabase-anon-key-here' &&
+           SUPABASE_CONFIG.SUPABASE_URL.includes('.supabase.co');
+}
+
+// 验证 Supabase URL 格式
+function validateSupabaseUrl(url) {
+    if (!url || typeof url !== 'string') {
+        return false;
+    }
+    
+    // Supabase URL 格式验证
+    return url.startsWith('https://') && url.includes('.supabase.co');
+}
+
+// 获取当前配置状态
+function getSupabaseConfigStatus() {
+    return {
+        configured: isSupabaseConfigured(),
+        urlValid: validateSupabaseUrl(SUPABASE_CONFIG.SUPABASE_URL),
+        realtimeEnabled: SUPABASE_CONFIG.REALTIME_CONFIG.ENABLED,
+        tables: SUPABASE_CONFIG.TABLES
+    };
+}
+
+// 导出配置（用于模块化）
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { 
+        SUPABASE_CONFIG, 
+        isSupabaseConfigured, 
+        validateSupabaseUrl, 
+        getSupabaseConfigStatus 
+    };
+}

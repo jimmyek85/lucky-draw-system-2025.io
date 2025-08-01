@@ -80,7 +80,9 @@
                         <table class="w-full text-sm text-left text-gray-600">
                             <thead class="text-xs text-gray-700 uppercase bg-gray-50">
                                 <tr>
-                                    <th scope="col" class="px-2 py-3"><input type="checkbox" id="select-all-users"></th>
+                                    <th scope="col" class="px-2 py-3">
+                                        <input type="checkbox" id="select-all-users" title="选择所有用户" aria-label="选择所有用户">
+                                    </th>
                                     <th scope="col" class="px-6 py-3">名字</th>
                                     <th scope="col" class="px-6 py-3">电话</th>
                                     <th scope="col" class="px-6 py-3">机会次数</th>
@@ -172,28 +174,26 @@
     
     <!-- API Configuration -->
     <script src="config.js"></script>
+    <script src="supabase-config.js"></script>
     
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, getDoc, updateDoc, increment, query, where, onSnapshot, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { createClient } from 'https://cdn.skypack.dev/@supabase/supabase-js@2';
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyDR9ApYQZbHJpbs3hSiY1wdGjSOIxWpZIY",
-            authDomain: "deductive-smile-408711.firebaseapp.com",
-            projectId: "deductive-smile-408711",
-            storageBucket: "deductive-smile-408711.appspot.com",
-            messagingSenderId: "209601875553",
-            appId: "1:209601875553:web:d4a9175622134295c06420",
-            measurementId: "G-R222P71DDD"
+        // 初始化 Supabase 客户端
+        const supabase = createClient(
+            window.SUPABASE_CONFIG?.SUPABASE_URL || 'https://your-project-id.supabase.co',
+            window.SUPABASE_CONFIG?.SUPABASE_ANON_KEY || 'your-supabase-anon-key-here'
+        );
+        
+        // 数据库表名
+        const TABLES = window.SUPABASE_CONFIG?.TABLES || {
+            USERS: 'users',
+            SETTINGS: 'settings',
+            KNOWLEDGE: 'knowledge'
         };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-        const usersCollection = collection(db, 'users');
-        const settingsCollection = collection(db, 'settings');
-        const knowledgeCollection = collection(db, 'knowledge');
+        
+        // 实时订阅管理
+        let realtimeSubscriptions = [];
 
         const usersTableBody = document.getElementById('users-table-body');
         const searchInput = document.getElementById('search-input');
@@ -322,7 +322,7 @@
                 row.className = 'bg-white border-b hover:bg-gray-50';
                 row.innerHTML = `
                     <td class="px-2 py-4"><input type="checkbox" class="user-checkbox" data-phone="${user.phone || ''}" data-email="${user.email || ''}"></td>
-                    <td class="px-6 py-4 font-medium text-blue-600 hover:underline cursor-pointer user-name-clickable" data-userid="${user.id}">${user.name || 'N/A'}</td>
+                    <td class="px-6 py-4 font-medium text-blue-600 hover:underline cursor-pointer user-name-clickable" data-userid="${user.phone}">${user.name || 'N/A'}</td>
                     <td class="px-6 py-4">${user.phone || 'N/A'}</td>
                     <td class="px-6 py-4 font-bold text-center">${user.drawChances}</td>
                     <td class="px-6 py-4">${joinDate}</td>
@@ -333,14 +333,53 @@
         }
         
         async function fetchUsers() {
-            onSnapshot(usersCollection, (snapshot) => {
-                const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                users.sort((a, b) => (b.joinDate?.toDate() || 0) - (a.joinDate?.toDate() || 0));
-                renderTable(users);
-            }, (error) => {
-                console.error("Firestore permission error in listener:", error);
-                usersTableBody.innerHTML = `<tr><td colspan="6" class="text-center text-red-500 p-4">Error: Could not load data. Check console for permission errors.</td></tr>`;
-            });
+            try {
+                // 初始加载用户数据
+                const { data: users, error } = await supabase
+                    .from(TABLES.USERS)
+                    .select('*')
+                    .order('joinDate', { ascending: false });
+                
+                if (error) throw error;
+                
+                // 处理日期格式并渲染表格
+                const processedUsers = users.map(user => ({
+                    ...user,
+                    joinDate: user.joinDate ? new Date(user.joinDate) : null
+                }));
+                renderTable(processedUsers);
+                
+                // 设置实时订阅
+                const usersSubscription = supabase
+                    .channel('users-changes')
+                    .on('postgres_changes', {
+                        event: '*',
+                        schema: 'public',
+                        table: TABLES.USERS
+                    }, async (payload) => {
+                        console.log('Users table changed:', payload);
+                        // 重新获取所有用户数据
+                        const { data: updatedUsers, error: fetchError } = await supabase
+                            .from(TABLES.USERS)
+                            .select('*')
+                            .order('joinDate', { ascending: false });
+                        
+                        if (!fetchError) {
+                            const processedUpdatedUsers = updatedUsers.map(user => ({
+                                ...user,
+                                joinDate: user.joinDate ? new Date(user.joinDate) : null
+                            }));
+                            renderTable(processedUpdatedUsers);
+                        }
+                    })
+                    .subscribe();
+                
+                realtimeSubscriptions.push(usersSubscription);
+                
+            } catch (error) {
+                console.error("Supabase error in fetchUsers:", error);
+                usersTableBody.innerHTML = `<tr><td colspan="6" class="text-center text-red-500 p-4">Error: Could not load data. Check console for errors.</td></tr>`;
+            }
         }
 
         async function searchUser() {
@@ -353,17 +392,37 @@
             resultContainer.innerHTML = '<p>Searching...</p>';
             searchResultsDiv.classList.remove('hidden');
 
-            const nameQuery = query(usersCollection, where("name", "==", searchTerm));
-            const phoneQuery = query(usersCollection, where("phone", "==", searchTerm));
-
-            const [nameSnapshot, phoneSnapshot] = await Promise.all([getDocs(nameQuery), getDocs(phoneQuery)]);
-            
-            const results = new Map();
-            nameSnapshot.forEach(doc => results.set(doc.id, { id: doc.id, ...doc.data() }));
-            phoneSnapshot.forEach(doc => results.set(doc.id, { id: doc.id, ...doc.data() }));
-
-            const foundUsers = Array.from(results.values());
-            renderSearchResults(foundUsers);
+            try {
+                // 搜索用户名和电话号码
+                const [nameResults, phoneResults] = await Promise.all([
+                    supabase
+                        .from(TABLES.USERS)
+                        .select('*')
+                        .eq('name', searchTerm),
+                    supabase
+                        .from(TABLES.USERS)
+                        .select('*')
+                        .eq('phone', searchTerm)
+                ]);
+                
+                // 合并结果并去重
+                const results = new Map();
+                
+                if (nameResults.data) {
+                    nameResults.data.forEach(user => results.set(user.phone, user));
+                }
+                
+                if (phoneResults.data) {
+                    phoneResults.data.forEach(user => results.set(user.phone, user));
+                }
+                
+                const foundUsers = Array.from(results.values());
+                renderSearchResults(foundUsers);
+                
+            } catch (error) {
+                console.error('Search error:', error);
+                resultContainer.innerHTML = '<p class="text-red-500">Search failed. Please try again.</p>';
+            }
         }
 
         function renderSearchResults(users) {
@@ -382,7 +441,7 @@
                         <p class="text-sm text-gray-500">${user.phone}</p>
                         <p class="text-sm text-gray-500">Current Chances: ${user.drawChances}</p>
                     </div>
-                    <button data-id="${user.id}" class="add-chance-btn bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition-transform transform hover:scale-105">+1 Chance</button>
+                    <button data-phone="${user.phone}" class="add-chance-btn bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition-transform transform hover:scale-105">+1 Chance</button>
                 `;
                 resultContainer.appendChild(userCard);
             });
@@ -392,16 +451,14 @@
             if (!e.target.classList.contains('add-chance-btn')) return;
             
             const button = e.target;
-            const userId = button.dataset.id;
-            const userRef = doc(db, "users", userId);
+            const userPhone = button.dataset.phone;
             
             button.disabled = true;
             button.textContent = 'Adding...';
 
             try {
-                await updateDoc(userRef, {
-                    drawChances: increment(1)
-                });
+                await addChance(userPhone);
+                
                 button.textContent = 'Added!';
                 button.classList.remove('bg-green-500');
                 button.classList.add('bg-blue-500');
@@ -415,6 +472,31 @@
                 alert("Failed to add chance.");
                 button.disabled = false;
                 button.textContent = '+1 Chance';
+            }
+        }
+
+        async function addChance(phone) {
+            try {
+                // 首先获取当前用户数据
+                const { data: user, error: fetchError } = await supabase
+                    .from(TABLES.USERS)
+                    .select('drawChances')
+                    .eq('phone', phone)
+                    .single();
+                
+                if (fetchError) throw fetchError;
+                
+                // 更新抽奖次数
+                const { error: updateError } = await supabase
+                    .from(TABLES.USERS)
+                    .update({ drawChances: (user.drawChances || 0) + 1 })
+                    .eq('phone', phone);
+                
+                if (updateError) throw updateError;
+                
+                console.log("Added 1 chance to user:", phone);
+            } catch (error) {
+                console.error("Error adding chance: ", error);
             }
         }
 
@@ -526,10 +608,16 @@
             confirmCancelBtn.addEventListener('click', handleCancel);
         }
 
-        async function deleteUser(userId, userName) {
+        async function deleteUser(userPhone, userName) {
             showConfirmation(`确定要删除用户 "${userName}" 吗？此操作无法撤销。`, async () => {
                 try {
-                    await deleteDoc(doc(db, "users", userId));
+                    const { error } = await supabase
+                        .from(TABLES.USERS)
+                        .delete()
+                        .eq('phone', userPhone);
+                    
+                    if (error) throw error;
+                    
                     userDetailModal.classList.add('hidden');
                 } catch (error) {
                     console.error("Error deleting user: ", error);
@@ -537,8 +625,8 @@
             });
         }
         
-        function showUserDetailModal(userId) {
-            const user = allUsersData.find(u => u.id === userId);
+        function showUserDetailModal(userPhone) {
+            const user = allUsersData.find(u => u.phone === userPhone);
             if (!user) return;
 
             const userDetailTitle = document.getElementById('user-detail-title');
@@ -573,7 +661,7 @@
             userDetailModal.classList.remove('hidden');
 
             document.getElementById('modal-delete-user-btn').onclick = () => {
-                deleteUser(user.id, user.name);
+                deleteUser(user.phone, user.name);
             };
         }
 
@@ -610,12 +698,17 @@
                 name: name,
                 phone: phone,
                 drawChances: chances,
-                joinDate: new Date(),
+                joinDate: new Date().toISOString(),
                 prizesWon: []
             };
 
             try {
-                await setDoc(doc(db, "users", phone), newUser);
+                const { error } = await supabase
+                    .from(TABLES.USERS)
+                    .insert([newUser]);
+                
+                if (error) throw error;
+                
                 addUserModal.classList.add('hidden');
             } catch (error) {
                 console.error("Error adding user: ", error);
@@ -644,7 +737,16 @@
             const btn = document.getElementById('publish-announcement-btn');
             const text = document.getElementById('announcement-text').value;
             try {
-                await setDoc(doc(settingsCollection, 'announcement'), { content: text, lastUpdated: new Date() });
+                const { error } = await supabase
+                    .from(TABLES.SETTINGS)
+                    .upsert({
+                        key: 'announcement',
+                        content: text,
+                        lastUpdated: new Date().toISOString()
+                    });
+                
+                if (error) throw error;
+                
                 showButtonFeedback(btn, '发布公告');
             } catch (error) {
                 console.error("Error publishing announcement: ", error);
@@ -655,7 +757,16 @@
             const btn = document.getElementById('save-knowledge-btn');
             const text = document.getElementById('knowledge-text').value;
             try {
-                await setDoc(doc(knowledgeCollection, 'main'), { content: text, lastUpdated: new Date() });
+                const { error } = await supabase
+                    .from(TABLES.KNOWLEDGE)
+                    .upsert({
+                        key: 'main',
+                        content: text,
+                        lastUpdated: new Date().toISOString()
+                    });
+                
+                if (error) throw error;
+                
                 showButtonFeedback(btn, '保存知识库');
             } catch (error) {
                 console.error("Error saving knowledge base: ", error);
@@ -664,13 +775,26 @@
 
         async function loadSettings() {
             try {
-                const announcementDoc = await getDoc(doc(settingsCollection, 'announcement'));
-                if (announcementDoc.exists()) {
-                    document.getElementById('announcement-text').value = announcementDoc.data().content;
+                // 加载公告设置
+                const { data: announcementData, error: announcementError } = await supabase
+                    .from(TABLES.SETTINGS)
+                    .select('content')
+                    .eq('key', 'announcement')
+                    .single();
+                
+                if (!announcementError && announcementData) {
+                    document.getElementById('announcement-text').value = announcementData.content || '';
                 }
-                const knowledgeDoc = await getDoc(doc(knowledgeCollection, 'main'));
-                if (knowledgeDoc.exists()) {
-                    document.getElementById('knowledge-text').value = knowledgeDoc.data().content;
+                
+                // 加载知识库设置
+                const { data: knowledgeData, error: knowledgeError } = await supabase
+                    .from(TABLES.KNOWLEDGE)
+                    .select('content')
+                    .eq('key', 'main')
+                    .single();
+                
+                if (!knowledgeError && knowledgeData) {
+                    document.getElementById('knowledge-text').value = knowledgeData.content || '';
                 }
             } catch(e){ console.error("Error loading settings:", e)}
         }
@@ -678,7 +802,6 @@
 
         async function initializeAdminPanel() {
             try {
-                await signInAnonymously(auth);
                 
                 await fetchUsers();
                 await loadSettings();
