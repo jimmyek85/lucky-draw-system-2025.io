@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>前端后端连接修复方案</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: white;
+            line-height: 1.6;
+        }
+        .solution-section {
+            background-color: #2a2a2a;
+            padding: 25px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .warning { color: #ff9800; }
+        .info { color: #2196F3; }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 8px;
+            font-size: 14px;
+        }
+        button:hover { background-color: #45a049; }
+        button.warning { background-color: #ff9800; }
+        button.warning:hover { background-color: #e68900; }
+        button.error { background-color: #f44336; }
+        button.error:hover { background-color: #da190b; }
+        .log {
+            background-color: #000;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .status-card {
+            background-color: #333;
+            padding: 20px;
+            border-radius: 6px;
+            border-left: 4px solid #666;
+        }
+        .status-card.success { border-left-color: #4CAF50; }
+        .status-card.error { border-left-color: #f44336; }
+        .status-card.warning { border-left-color: #ff9800; }
+        .status-card.info { border-left-color: #2196F3; }
+        .code-block {
+            background-color: #1e1e1e;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        .step-number {
+            background-color: #4CAF50;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        .step {
+            display: flex;
+            align-items: flex-start;
+            margin: 15px 0;
+        }
+        .step-content {
+            flex: 1;
+        }
+        h1, h2, h3 { color: #fff; }
+        h2 { border-bottom: 2px solid #4CAF50; padding-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <h1>🔧 前端后端连接修复方案</h1>
+    
+    <div class="solution-section">
+        <h2>📊 问题诊断与解决状态</h2>
+        <button onclick="runComprehensiveDiagnosis()">🚀 运行综合诊断</button>
+        <button onclick="applyAllFixes()">🔧 应用所有修复</button>
+        <button onclick="clearAllResults()">🗑️ 清除所有结果</button>
+        <div id="diagnosis-status" class="status-grid"></div>
+    </div>
+
+    <div class="solution-section">
+        <h2>🎯 核心问题分析</h2>
+        <div class="status-grid">
+            <div class="status-card info">
+                <h3>问题1: 数据保存失败</h3>
+                <p>用户注册时数据无法保存到Supabase数据库</p>
+                <ul>
+                    <li>可能原因: RLS权限配置</li>
+                    <li>可能原因: 表结构不匹配</li>
+                    <li>可能原因: API密钥权限不足</li>
+                </ul>
+            </div>
+            <div class="status-card warning">
+                <h3>问题2: 离线数据积累</h3>
+                <p>连接失败时数据保存在本地存储中</p>
+                <ul>
+                    <li>影响: 用户数据丢失风险</li>
+                    <li>影响: 参与记录不完整</li>
+                    <li>解决: 需要数据同步机制</li>
+                </ul>
+            </div>
+            <div class="status-card error">
+                <h3>问题3: 参与者数据丢失</h3>
+                <p>之前参与但未连接成功的用户数据状态</p>
+                <ul>
+                    <li>本地存储数据可能存在</li>
+                    <li>需要检查和恢复机制</li>
+                    <li>确保公平性和完整性</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="solution-section">
+        <h2>🔧 修复步骤</h2>
+        
+        <div class="step">
+            <div class="step-number">1</div>
+            <div class="step-content">
+                <h3>检查Supabase数据库配置</h3>
+                <button onclick="checkDatabaseSetup()">检查数据库</button>
+                <div id="database-check-result"></div>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-number">2</div>
+            <div class="step-content">
+                <h3>修复RLS权限策略</h3>
+                <button onclick="fixRLSPolicies()">修复权限</button>
+                <div id="rls-fix-result"></div>
+                <div class="code-block">-- 需要在Supabase SQL Editor中执行的SQL:
+-- 删除现有策略
+DROP POLICY IF EXISTS "Users can read all users" ON users;
+DROP POLICY IF EXISTS "Users can insert their own data" ON users;
+DROP POLICY IF EXISTS "Users can update their own data" ON users;
+DROP POLICY IF EXISTS "Users can delete their own data" ON users;
+
+-- 创建新的宽松策略（适用于公开应用）
+CREATE POLICY "Allow all operations on users" ON users
+    FOR ALL USING (true) WITH CHECK (true);
+
+-- 对settings和knowledge表也应用相同策略
+CREATE POLICY "Allow all operations on settings" ON settings
+    FOR ALL USING (true) WITH CHECK (true);
+
+CREATE POLICY "Allow all operations on knowledge" ON knowledge
+    FOR ALL USING (true) WITH CHECK (true);</div>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-number">3</div>
+            <div class="step-content">
+                <h3>测试用户注册功能</h3>
+                <button onclick="testUserRegistration()">测试注册</button>
+                <div id="registration-test-result"></div>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-number">4</div>
+            <div class="step-content">
+                <h3>恢复离线用户数据</h3>
+                <button onclick="recoverOfflineData()">恢复数据</button>
+                <button onclick="checkOfflineUsers()" class="warning">检查离线用户</button>
+                <div id="offline-recovery-result"></div>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-number">5</div>
+            <div class="step-content">
+                <h3>验证数据完整性</h3>
+                <button onclick="verifyDataIntegrity()">验证数据</button>
+                <div id="data-integrity-result"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="solution-section">
+        <h2>❓ 关于参与者数据的重要说明</h2>
+        <div class="status-card warning">
+            <h3>🔍 参与者数据状态分析</h3>
+            <p><strong>好消息：</strong>之前参与但连接失败的用户数据很可能没有完全丢失！</p>
+            <ul>
+                <li><strong>本地存储保护：</strong>应用设计了离线模式，用户数据会暂存在浏览器本地存储中</li>
+                <li><strong>数据恢复机制：</strong>一旦连接恢复，系统会尝试同步这些离线数据</li>
+                <li><strong>参与记录保留：</strong>用户的参与行为（如抽奖次数）会在本地记录</li>
+                <li><strong>公平性保障：</strong>修复连接后，之前的参与者仍然有效</li>
+            </ul>
+            <button onclick="analyzeParticipantData()">分析参与者数据</button>
+            <div id="participant-analysis-result"></div>
+        </div>
+    </div>
+
+    <div class="solution-section">
+        <h2>📝 详细操作日志</h2>
+        <button onclick="clearLog()">清除日志</button>
+        <div id="operation-log" class="log"></div>
+    </div>
+
+    <script src="supabase-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        let supabase;
+        let operationLog = [];
+        let diagnosisResults = {
+            database: null,
+            permissions: null,
+            registration: null,
+            offlineData: null,
+            dataIntegrity: null
+        };
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}`;
+            operationLog.push(logEntry);
+            
+            const logDiv = document.getElementById('operation-log');
+            logDiv.textContent = operationLog.join('\n');
+            logDiv.scrollTop = logDiv.scrollHeight;
+            
+            console.log(logEntry);
+        }
+
+        function updateDiagnosisStatus() {
+            const statusDiv = document.getElementById('diagnosis-status');
+            let html = '';
+            
+            Object.entries(diagnosisResults).forEach(([key, result]) => {
+                const statusClass = result === null ? 'info' : (result ? 'success' : 'error');
+                const statusText = result === null ? '未检查' : (result ? '✅ 正常' : '❌ 需要修复');
+                const keyName = {
+                    database: '数据库配置',
+                    permissions: '权限设置',
+                    registration: '注册功能',
+                    offlineData: '离线数据',
+                    dataIntegrity: '数据完整性'
+                }[key];
+                
+                html += `<div class="status-card ${statusClass}">
+                    <h4>${keyName}</h4>
+                    <p>${statusText}</p>
+                </div>`;
+            });
+            
+            statusDiv.innerHTML = html;
+        }
+
+        async function initSupabase() {
+            try {
+                if (!window.SUPABASE_CONFIG) {
+                    throw new Error('SUPABASE_CONFIG 配置未找到');
+                }
+                
+                supabase = window.supabase.createClient(
+                    window.SUPABASE_CONFIG.SUPABASE_URL,
+                    window.SUPABASE_CONFIG.SUPABASE_ANON_KEY
+                );
+                
+                log('✅ Supabase 客户端初始化成功');
+                return true;
+            } catch (error) {
+                log(`❌ Supabase 初始化失败: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function checkDatabaseSetup() {
+            const resultDiv = document.getElementById('database-check-result');
+            resultDiv.innerHTML = '检查中...';
+            
+            try {
+                if (!supabase) {
+                    const initialized = await initSupabase();
+                    if (!initialized) {
+                        throw new Error('无法初始化 Supabase 客户端');
+                    }
+                }
+                
+                // 检查所有必要的表
+                const tables = ['users', 'settings', 'knowledge'];
+                let allTablesOk = true;
+                let html = '<h4>数据库检查结果:</h4><ul>';
+                
+                for (const table of tables) {
+                    try {
+                        const { data, error } = await supabase
+                            .from(table)
+                            .select('*')
+                            .limit(1);
+                        
+                        if (error) {
+                            html += `<li class="error">❌ 表 '${table}': ${error.message}</li>`;
+                            allTablesOk = false;
+                            log(`❌ 表 '${table}' 检查失败: ${error.message}`, 'error');
+                        } else {
+                            html += `<li class="success">✅ 表 '${table}': 正常</li>`;
+                            log(`✅ 表 '${table}' 检查通过`);
+                        }
+                    } catch (tableError) {
+                        html += `<li class="error">❌ 表 '${table}': ${tableError.message}</li>`;
+                        allTablesOk = false;
+                        log(`❌ 表 '${table}' 检查异常: ${tableError.message}`, 'error');
+                    }
+                }
+                
+                html += '</ul>';
+                diagnosisResults.database = allTablesOk;
+                resultDiv.innerHTML = html;
+                
+            } catch (error) {
+                diagnosisResults.database = false;
+                resultDiv.innerHTML = `<span class="error">❌ 数据库检查失败: ${error.message}</span>`;
+                log(`❌ 数据库检查失败: ${error.message}`, 'error');
+            }
+            
+            updateDiagnosisStatus();
+        }
+
+        async function fixRLSPolicies() {
+            const resultDiv = document.getElementById('rls-fix-result');
+            resultDiv.innerHTML = `<div class="warning">⚠️ RLS权限修复需要在Supabase Dashboard中手动执行SQL语句。<br>
+            请复制上方的SQL代码到Supabase SQL Editor中执行。</div>`;
+            log('⚠️ RLS权限修复需要手动操作', 'warning');
+        }
+
+        async function testUserRegistration() {
+            const resultDiv = document.getElementById('registration-test-result');
+            resultDiv.innerHTML = '测试中...';
+            
+            try {
+                const testUser = {
+                    name: '测试用户_' + Date.now(),
+                    phone: '+60' + Math.floor(Math.random() * 1000000000),
+                    email: `test${Date.now()}@example.com`,
+                    address: '测试地址',
+                    created_at: new Date().toISOString(),
+                    drawchances: 1,
+                    prizeswon: []
+                };
+                
+                log(`🔄 开始测试用户注册: ${testUser.name}`);
+                
+                const { data, error } = await supabase
+                    .from('users')
+                    .insert([testUser])
+                    .select();
+                
+                if (error) {
+                    throw error;
+                }
+                
+                diagnosisResults.registration = true;
+                resultDiv.innerHTML = `<span class="success">✅ 用户注册测试成功！用户ID: ${data[0].id}</span>`;
+                log(`✅ 用户注册测试成功: ${JSON.stringify(data[0])}`);
+                
+                // 清理测试数据
+                await supabase
+                    .from('users')
+                    .delete()
+                    .eq('id', data[0].id);
+                log('🗑️ 测试数据已清理');
+                
+            } catch (error) {
+                diagnosisResults.registration = false;
+                resultDiv.innerHTML = `<span class="error">❌ 用户注册测试失败: ${error.message}</span>`;
+                log(`❌ 用户注册测试失败: ${error.message}`, 'error');
+            }
+            
+            updateDiagnosisStatus();
+        }
+
+        async function checkOfflineUsers() {
+            const resultDiv = document.getElementById('offline-recovery-result');
+            
+            try {
+                const offlineUsers = localStorage.getItem('offlineUsers');
+                const userData = localStorage.getItem('userData');
+                
+                let html = '<h4>离线数据检查结果:</h4>';
+                let hasOfflineData = false;
+                
+                if (offlineUsers) {
+                    const users = JSON.parse(offlineUsers);
+                    html += `<div class="warning">⚠️ 发现 ${users.length} 个离线用户数据:</div><ul>`;
+                    users.forEach((user, index) => {
+                        html += `<li>${index + 1}. ${user.name} - ${user.phone} - ${user.email}</li>`;
+                    });
+                    html += '</ul>';
+                    hasOfflineData = true;
+                    log(`⚠️ 发现 ${users.length} 个离线用户数据`, 'warning');
+                }
+                
+                if (userData) {
+                    const user = JSON.parse(userData);
+                    html += `<div class="info">ℹ️ 当前用户数据: ${user.name} - ${user.phone}</div>`;
+                    hasOfflineData = true;
+                    log(`ℹ️ 发现当前用户数据: ${user.name}`);
+                }
+                
+                if (!hasOfflineData) {
+                    html += '<div class="success">✅ 无离线数据需要恢复</div>';
+                    log('✅ 无离线数据需要恢复');
+                }
+                
+                resultDiv.innerHTML = html;
+                diagnosisResults.offlineData = !hasOfflineData;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ 离线数据检查失败: ${error.message}</span>`;
+                log(`❌ 离线数据检查失败: ${error.message}`, 'error');
+                diagnosisResults.offlineData = false;
+            }
+            
+            updateDiagnosisStatus();
+        }
+
+        async function recoverOfflineData() {
+            const resultDiv = document.getElementById('offline-recovery-result');
+            resultDiv.innerHTML = '恢复中...';
+            
+            try {
+                const offlineUsers = localStorage.getItem('offlineUsers');
+                if (!offlineUsers) {
+                    resultDiv.innerHTML = '<span class="info">ℹ️ 无离线数据需要恢复</span>';
+                    log('ℹ️ 无离线数据需要恢复');
+                    return;
+                }
+                
+                const users = JSON.parse(offlineUsers);
+                log(`🔄 开始恢复 ${users.length} 个离线用户数据`);
+                
+                let successCount = 0;
+                let failCount = 0;
+                let html = '<h4>数据恢复结果:</h4><ul>';
+                
+                for (const user of users) {
+                    try {
+                        // 检查用户是否已存在
+                        const { data: existingUser, error: checkError } = await supabase
+                            .from('users')
+                            .select('*')
+                            .eq('phone', user.phone)
+                            .single();
+                        
+                        if (existingUser) {
+                            html += `<li class="warning">⚠️ ${user.name} (${user.phone}) - 用户已存在，跳过</li>`;
+                            log(`⚠️ 用户 ${user.name} 已存在，跳过恢复`);
+                        } else {
+                            const { data, error } = await supabase
+                                .from('users')
+                                .insert([user])
+                                .select();
+                            
+                            if (error) {
+                                throw error;
+                            }
+                            
+                            html += `<li class="success">✅ ${user.name} (${user.phone}) - 恢复成功</li>`;
+                            log(`✅ 用户 ${user.name} 恢复成功`);
+                            successCount++;
+                        }
+                    } catch (userError) {
+                        html += `<li class="error">❌ ${user.name} (${user.phone}) - 恢复失败: ${userError.message}</li>`;
+                        log(`❌ 用户 ${user.name} 恢复失败: ${userError.message}`, 'error');
+                        failCount++;
+                    }
+                }
+                
+                html += '</ul>';
+                html += `<div class="info">📊 恢复统计: 成功 ${successCount} 个，失败 ${failCount} 个</div>`;
+                
+                if (failCount === 0) {
+                    // 清除已恢复的离线数据
+                    localStorage.removeItem('offlineUsers');
+                    html += '<div class="success">✅ 离线数据已清除</div>';
+                    log('✅ 离线数据恢复完成，已清除本地缓存');
+                    diagnosisResults.offlineData = true;
+                } else {
+                    diagnosisResults.offlineData = false;
+                }
+                
+                resultDiv.innerHTML = html;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ 数据恢复失败: ${error.message}</span>`;
+                log(`❌ 数据恢复失败: ${error.message}`, 'error');
+                diagnosisResults.offlineData = false;
+            }
+            
+            updateDiagnosisStatus();
+        }
+
+        async function verifyDataIntegrity() {
+            const resultDiv = document.getElementById('data-integrity-result');
+            resultDiv.innerHTML = '验证中...';
+            
+            try {
+                // 统计用户数据
+                const { data: users, error: usersError } = await supabase
+                    .from('users')
+                    .select('*');
+                
+                if (usersError) {
+                    throw usersError;
+                }
+                
+                let html = '<h4>数据完整性验证结果:</h4>';
+                html += `<div class="info">📊 总用户数: ${users.length}</div>`;
+                
+                // 检查数据质量
+                const usersWithoutName = users.filter(u => !u.name || u.name.trim() === '');
+                const usersWithoutPhone = users.filter(u => !u.phone || u.phone.trim() === '');
+                const duplicatePhones = users.filter((u, i, arr) => 
+                    arr.findIndex(other => other.phone === u.phone) !== i
+                );
+                
+                if (usersWithoutName.length > 0) {
+                    html += `<div class="warning">⚠️ ${usersWithoutName.length} 个用户缺少姓名</div>`;
+                }
+                
+                if (usersWithoutPhone.length > 0) {
+                    html += `<div class="error">❌ ${usersWithoutPhone.length} 个用户缺少电话</div>`;
+                }
+                
+                if (duplicatePhones.length > 0) {
+                    html += `<div class="warning">⚠️ ${duplicatePhones.length} 个重复电话号码</div>`;
+                }
+                
+                const dataQualityOk = usersWithoutName.length === 0 && 
+                                    usersWithoutPhone.length === 0 && 
+                                    duplicatePhones.length === 0;
+                
+                if (dataQualityOk) {
+                    html += '<div class="success">✅ 数据完整性验证通过</div>';
+                    log('✅ 数据完整性验证通过');
+                } else {
+                    html += '<div class="warning">⚠️ 发现数据质量问题，但不影响基本功能</div>';
+                    log('⚠️ 发现数据质量问题', 'warning');
+                }
+                
+                diagnosisResults.dataIntegrity = dataQualityOk;
+                resultDiv.innerHTML = html;
+                
+            } catch (error) {
+                diagnosisResults.dataIntegrity = false;
+                resultDiv.innerHTML = `<span class="error">❌ 数据完整性验证失败: ${error.message}</span>`;
+                log(`❌ 数据完整性验证失败: ${error.message}`, 'error');
+            }
+            
+            updateDiagnosisStatus();
+        }
+
+        async function analyzeParticipantData() {
+            const resultDiv = document.getElementById('participant-analysis-result');
+            resultDiv.innerHTML = '分析中...';
+            
+            try {
+                // 检查数据库中的用户
+                const { data: dbUsers, error: dbError } = await supabase
+                    .from('users')
+                    .select('*');
+                
+                if (dbError) {
+                    throw dbError;
+                }
+                
+                // 检查本地存储中的用户
+                const offlineUsers = localStorage.getItem('offlineUsers');
+                const currentUser = localStorage.getItem('userData');
+                
+                let html = '<h4>参与者数据分析结果:</h4>';
+                
+                // 数据库用户统计
+                html += `<div class="success">✅ 数据库中的参与者: ${dbUsers.length} 人</div>`;
+                
+                if (dbUsers.length > 0) {
+                    const totalDrawChances = dbUsers.reduce((sum, user) => sum + (user.drawchances || 1), 0);
+                    html += `<div class="info">🎯 总抽奖次数: ${totalDrawChances} 次</div>`;
+                    
+                    const usersWithPrizes = dbUsers.filter(user => 
+                        user.prizeswon && Array.isArray(user.prizeswon) && user.prizeswon.length > 0
+                    );
+                    html += `<div class="info">🏆 已中奖用户: ${usersWithPrizes.length} 人</div>`;
+                }
+                
+                // 本地存储用户统计
+                if (offlineUsers) {
+                    const localUsers = JSON.parse(offlineUsers);
+                    html += `<div class="warning">⚠️ 本地存储中的参与者: ${localUsers.length} 人（需要恢复）</div>`;
+                } else {
+                    html += `<div class="success">✅ 本地存储: 无待恢复数据</div>`;
+                }
+                
+                if (currentUser) {
+                    const user = JSON.parse(currentUser);
+                    html += `<div class="info">👤 当前用户: ${user.name} (${user.phone})</div>`;
+                }
+                
+                // 总结
+                html += '<hr><h4>📋 总结:</h4>';
+                html += '<ul>';
+                html += '<li><strong>数据安全性:</strong> 应用具有离线保护机制，用户数据不会轻易丢失</li>';
+                html += '<li><strong>参与有效性:</strong> 所有参与记录（包括离线的）都是有效的</li>';
+                html += '<li><strong>公平性保障:</strong> 修复连接后，之前的参与者可以继续参与</li>';
+                html += '<li><strong>数据恢复:</strong> 可以通过"恢复离线数据"功能找回未同步的参与记录</li>';
+                html += '</ul>';
+                
+                resultDiv.innerHTML = html;
+                log('✅ 参与者数据分析完成');
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ 参与者数据分析失败: ${error.message}</span>`;
+                log(`❌ 参与者数据分析失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function runComprehensiveDiagnosis() {
+            log('🚀 开始运行综合诊断');
+            
+            await checkDatabaseSetup();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            await testUserRegistration();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            await checkOfflineUsers();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            await verifyDataIntegrity();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            await analyzeParticipantData();
+            
+            log('✅ 综合诊断完成');
+        }
+
+        async function applyAllFixes() {
+            log('🔧 开始应用所有修复');
+            
+            // 注意：RLS修复需要手动操作
+            await fixRLSPolicies();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            await recoverOfflineData();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            await runComprehensiveDiagnosis();
+            
+            log('✅ 所有自动修复已完成');
+        }
+
+        function clearAllResults() {
+            diagnosisResults = {
+                database: null,
+                permissions: null,
+                registration: null,
+                offlineData: null,
+                dataIntegrity: null
+            };
+            
+            document.getElementById('database-check-result').innerHTML = '';
+            document.getElementById('rls-fix-result').innerHTML = '';
+            document.getElementById('registration-test-result').innerHTML = '';
+            document.getElementById('offline-recovery-result').innerHTML = '';
+            document.getElementById('data-integrity-result').innerHTML = '';
+            document.getElementById('participant-analysis-result').innerHTML = '';
+            
+            updateDiagnosisStatus();
+            log('🗑️ 所有结果已清除');
+        }
+
+        function clearLog() {
+            operationLog = [];
+            document.getElementById('operation-log').textContent = '';
+        }
+
+        // 页面加载时初始化
+        window.addEventListener('load', async () => {
+            log('🚀 连接修复方案页面加载完成');
+            updateDiagnosisStatus();
+            await initSupabase();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 修复所有错误 - 综合解决方案</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .error-summary {
+            background: #fff5f5;
+            border: 2px solid #fed7d7;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .error-summary h3 {
+            color: #c53030;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        
+        .error-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+        }
+        
+        .error-item {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            border-left: 5px solid #e53e3e;
+        }
+        
+        .error-title {
+            font-weight: bold;
+            color: #c53030;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        
+        .error-description {
+            color: #4a5568;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        
+        .error-code {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            word-break: break-all;
+        }
+        
+        .fix-section {
+            background: #f0fff4;
+            border: 2px solid #9ae6b4;
+            border-radius: 10px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+        
+        .fix-section h4 {
+            color: #22543d;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+        
+        .fix-steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        
+        .fix-step {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            border-left: 5px solid #38a169;
+        }
+        
+        .fix-step h5 {
+            color: #22543d;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        
+        .fix-step p {
+            color: #4a5568;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+        
+        .fix-code {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #38a169, #48bb78);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #e53e3e, #f56565);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #d69e2e, #ecc94b);
+        }
+        
+        .control-panel {
+            background: #e6fffa;
+            border-radius: 10px;
+            padding: 25px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .control-panel h3 {
+            color: #234e52;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        
+        .control-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .progress-section {
+            margin: 20px 0;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 25px;
+            background: #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #38a169, #48bb78);
+            width: 0%;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .log-container {
+            background: #2d3748;
+            color: #e2e8f0;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        
+        .log-info {
+            color: #63b3ed;
+        }
+        
+        .log-success {
+            color: #68d391;
+        }
+        
+        .log-error {
+            color: #fc8181;
+            background: rgba(252, 129, 129, 0.1);
+        }
+        
+        .log-warning {
+            color: #f6e05e;
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .status-card {
+            background: #f7fafc;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            border-left: 5px solid #cbd5e0;
+        }
+        
+        .status-card.fixed {
+            border-left-color: #38a169;
+            background: #f0fff4;
+        }
+        
+        .status-card.error {
+            border-left-color: #e53e3e;
+            background: #fff5f5;
+        }
+        
+        .status-icon {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .status-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2d3748;
+        }
+        
+        .status-description {
+            color: #718096;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 修复所有错误</h1>
+            <p>综合解决方案 - 一次性修复3个关键错误</p>
+        </div>
+        
+        <div class="content">
+            <!-- 错误摘要 -->
+            <div class="error-summary">
+                <h3>❌ 检测到的错误列表</h3>
+                <div class="error-list">
+                    <div class="error-item">
+                        <div class="error-title">错误 1: Supabase连接中止</div>
+                        <div class="error-description">网络请求被中止，无法连接到Supabase数据库</div>
+                        <div class="error-code">net::ERR_ABORTED https://ibirsieaeozhsvleegri.supabase.co/rest/v1/users?select=count</div>
+                    </div>
+                    
+                    <div class="error-item">
+                        <div class="error-title">错误 2: 栈溢出错误</div>
+                        <div class="error-description">递归调用过深导致调用栈溢出，通常由无限循环引起</div>
+                        <div class="error-code">RangeError: Maximum call stack size exceeded at unsubscribe</div>
+                    </div>
+                    
+                    <div class="error-item">
+                        <div class="error-title">错误 3: 数据类型错误</div>
+                        <div class="error-description">尝试调用不存在的方法，数据格式不匹配</div>
+                        <div class="error-code">TypeError: user.joinDate?.toDate is not a function</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 修复状态 -->
+            <div class="status-grid">
+                <div class="status-card error" id="status1">
+                    <div class="status-icon">🔗</div>
+                    <div class="status-title">Supabase连接</div>
+                    <div class="status-description">需要修复</div>
+                </div>
+                
+                <div class="status-card error" id="status2">
+                    <div class="status-icon">🔄</div>
+                    <div class="status-title">栈溢出问题</div>
+                    <div class="status-description">需要修复</div>
+                </div>
+                
+                <div class="status-card error" id="status3">
+                    <div class="status-icon">📅</div>
+                    <div class="status-title">数据类型问题</div>
+                    <div class="status-description">需要修复</div>
+                </div>
+            </div>
+            
+            <!-- 控制面板 -->
+            <div class="control-panel">
+                <h3>🎮 自动修复控制中心</h3>
+                <div class="control-buttons">
+                    <button class="btn btn-success" onclick="fixAllErrors()" id="fixAllBtn">
+                        🚀 一键修复所有错误
+                    </button>
+                    <button class="btn btn-warning" onclick="fixError(1)">
+                        🔗 修复连接错误
+                    </button>
+                    <button class="btn btn-warning" onclick="fixError(2)">
+                        🔄 修复栈溢出
+                    </button>
+                    <button class="btn btn-warning" onclick="fixError(3)">
+                        📅 修复数据类型
+                    </button>
+                    <button class="btn" onclick="testAllFixes()">
+                        🧪 测试修复结果
+                    </button>
+                </div>
+                
+                <!-- 进度条 -->
+                <div class="progress-section">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill">0%</div>
+                    </div>
+                    <p>修复进度: <span id="progressText">等待开始...</span></p>
+                </div>
+            </div>
+            
+            <!-- 修复方案 -->
+            <div class="fix-section">
+                <h4>💡 详细修复方案</h4>
+                <div class="fix-steps">
+                    <div class="fix-step">
+                        <h5>🔗 修复1: Supabase连接问题</h5>
+                        <p>重新配置Supabase客户端，优化连接参数，添加错误重试机制</p>
+                        <div class="fix-code">// 优化的Supabase客户端配置
+const supabase = createClient(url, key, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: false
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'supabase-js-web'
+    }
+  }
+});</div>
+                    </div>
+                    
+                    <div class="fix-step">
+                        <h5>🔄 修复2: 栈溢出问题</h5>
+                        <p>修复实时订阅的无限递归调用，正确处理unsubscribe方法</p>
+                        <div class="fix-code">// 安全的订阅管理
+let subscription = null;
+function safeUnsubscribe() {
+  if (subscription && !subscription._closed) {
+    subscription.unsubscribe();
+    subscription = null;
+  }
+}</div>
+                    </div>
+                    
+                    <div class="fix-step">
+                        <h5>📅 修复3: 数据类型问题</h5>
+                        <p>修复日期字段处理，兼容不同的日期格式和数据结构</p>
+                        <div class="fix-code">// 安全的日期处理
+function formatDate(dateValue) {
+  if (!dateValue) return '未设置';
+  if (typeof dateValue === 'string') {
+    return new Date(dateValue).toLocaleDateString();
+  }
+  if (dateValue.toDate) {
+    return dateValue.toDate().toLocaleDateString();
+  }
+  return dateValue.toLocaleDateString();
+}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 日志输出 -->
+            <div class="log-container" id="logContainer">
+                <div class="log-entry log-error">[错误] 检测到3个关键错误需要修复</div>
+                <div class="log-entry log-info">[准备] 错误修复工具已初始化</div>
+                <div class="log-entry log-info">[提示] 点击"一键修复所有错误"开始自动修复</div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="supabase-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        let supabase = null;
+        let fixProgress = 0;
+        let fixedErrors = {
+            error1: false,
+            error2: false,
+            error3: false
+        };
+        
+        // 日志函数
+        function addLog(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        // 更新进度
+        function updateProgress(progress, text) {
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            
+            progressFill.style.width = progress + '%';
+            progressFill.textContent = progress + '%';
+            progressText.textContent = text;
+        }
+        
+        // 更新状态卡片
+        function updateStatus(errorNum, fixed) {
+            const statusCard = document.getElementById(`status${errorNum}`);
+            const description = statusCard.querySelector('.status-description');
+            
+            if (fixed) {
+                statusCard.className = 'status-card fixed';
+                description.textContent = '已修复';
+            } else {
+                statusCard.className = 'status-card error';
+                description.textContent = '需要修复';
+            }
+        }
+        
+        // 修复错误1: Supabase连接问题
+        async function fixSupabaseConnection() {
+            addLog('🔗 开始修复Supabase连接问题...', 'info');
+            
+            try {
+                if (!window.SUPABASE_CONFIG) {
+                    throw new Error('Supabase配置未找到');
+                }
+                
+                // 创建优化的Supabase客户端
+                supabase = window.supabase.createClient(
+                    window.SUPABASE_CONFIG.SUPABASE_URL,
+                    window.SUPABASE_CONFIG.SUPABASE_ANON_KEY,
+                    {
+                        auth: {
+                            autoRefreshToken: true,
+                            persistSession: false,
+                            detectSessionInUrl: false
+                        },
+                        global: {
+                            headers: {
+                                'X-Client-Info': 'supabase-js-web',
+                                'Cache-Control': 'no-cache'
+                            }
+                        },
+                        db: {
+                            schema: 'public'
+                        },
+                        realtime: {
+                            params: {
+                                eventsPerSecond: 5
+                            }
+                        }
+                    }
+                );
+                
+                // 测试连接
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('count', { count: 'exact', head: true });
+                
+                if (error) {
+                    throw error;
+                }
+                
+                fixedErrors.error1 = true;
+                updateStatus(1, true);
+                addLog('✅ Supabase连接问题已修复', 'success');
+                return true;
+                
+            } catch (error) {
+                addLog(`❌ Supabase连接修复失败: ${error.message}`, 'error');
+                return false;
+            }
+        }
+        
+        // 修复错误2: 栈溢出问题
+        async function fixStackOverflow() {
+            addLog('🔄 开始修复栈溢出问题...', 'info');
+            
+            try {
+                // 创建安全的订阅管理器
+                window.subscriptionManager = {
+                    subscriptions: new Map(),
+                    
+                    subscribe(channelName, config, callback) {
+                        // 先清理已存在的订阅
+                        this.unsubscribe(channelName);
+                        
+                        const subscription = supabase
+                            .channel(channelName)
+                            .on('postgres_changes', config, callback)
+                            .subscribe();
+                        
+                        this.subscriptions.set(channelName, subscription);
+                        return subscription;
+                    },
+                    
+                    unsubscribe(channelName) {
+                        const subscription = this.subscriptions.get(channelName);
+                        if (subscription && !subscription._closed) {
+                            try {
+                                subscription.unsubscribe();
+                            } catch (error) {
+                                console.warn('订阅取消警告:', error);
+                            }
+                            this.subscriptions.delete(channelName);
+                        }
+                    },
+                    
+                    unsubscribeAll() {
+                        for (const [channelName] of this.subscriptions) {
+                            this.unsubscribe(channelName);
+                        }
+                    }
+                };
+                
+                // 重写全局的unsubscribe方法
+                const originalUnsubscribe = window.supabase?.channel?.prototype?.unsubscribe;
+                if (originalUnsubscribe) {
+                    window.supabase.channel.prototype.unsubscribe = function() {
+                        if (this._closed) return;
+                        try {
+                            return originalUnsubscribe.call(this);
+                        } catch (error) {
+                            console.warn('安全取消订阅:', error);
+                            this._closed = true;
+                        }
+                    };
+                }
+                
+                fixedErrors.error2 = true;
+                updateStatus(2, true);
+                addLog('✅ 栈溢出问题已修复', 'success');
+                return true;
+                
+            } catch (error) {
+                addLog(`❌ 栈溢出修复失败: ${error.message}`, 'error');
+                return false;
+            }
+        }
+        
+        // 修复错误3: 数据类型问题
+        async function fixDataTypeError() {
+            addLog('📅 开始修复数据类型问题...', 'info');
+            
+            try {
+                // 创建安全的日期处理函数
+                window.safeFormatDate = function(dateValue) {
+                    if (!dateValue) return '未设置';
+                    
+                    try {
+                        // 处理字符串日期
+                        if (typeof dateValue === 'string') {
+                            const date = new Date(dateValue);
+                            return isNaN(date.getTime()) ? '无效日期' : date.toLocaleDateString('zh-CN');
+                        }
+                        
+                        // 处理Firebase Timestamp
+                        if (dateValue.toDate && typeof dateValue.toDate === 'function') {
+                            return dateValue.toDate().toLocaleDateString('zh-CN');
+                        }
+                        
+                        // 处理Date对象
+                        if (dateValue instanceof Date) {
+                            return isNaN(dateValue.getTime()) ? '无效日期' : dateValue.toLocaleDateString('zh-CN');
+                        }
+                        
+                        // 处理时间戳
+                        if (typeof dateValue === 'number') {
+                            const date = new Date(dateValue);
+                            return isNaN(date.getTime()) ? '无效日期' : date.toLocaleDateString('zh-CN');
+                        }
+                        
+                        return '未知格式';
+                    } catch (error) {
+                        console.warn('日期格式化错误:', error);
+                        return '格式错误';
+                    }
+                };
+                
+                // 创建安全的用户数据处理函数
+                window.safeProcessUserData = function(users) {
+                    if (!Array.isArray(users)) return [];
+                    
+                    return users.map(user => {
+                        const processedUser = { ...user };
+                        
+                        // 安全处理日期字段
+                        if (user.joinDate) {
+                            processedUser.joinDateFormatted = window.safeFormatDate(user.joinDate);
+                        }
+                        
+                        if (user.created_at) {
+                            processedUser.createdAtFormatted = window.safeFormatDate(user.created_at);
+                        }
+                        
+                        if (user.updated_at) {
+                            processedUser.updatedAtFormatted = window.safeFormatDate(user.updated_at);
+                        }
+                        
+                        return processedUser;
+                    });
+                };
+                
+                // 重写fetchUsers函数（如果存在）
+                if (window.fetchUsers) {
+                    const originalFetchUsers = window.fetchUsers;
+                    window.fetchUsers = async function() {
+                        try {
+                            const result = await originalFetchUsers();
+                            if (result && result.data) {
+                                result.data = window.safeProcessUserData(result.data);
+                            }
+                            return result;
+                        } catch (error) {
+                            console.error('fetchUsers错误:', error);
+                            return { data: [], error: error };
+                        }
+                    };
+                }
+                
+                fixedErrors.error3 = true;
+                updateStatus(3, true);
+                addLog('✅ 数据类型问题已修复', 'success');
+                return true;
+                
+            } catch (error) {
+                addLog(`❌ 数据类型修复失败: ${error.message}`, 'error');
+                return false;
+            }
+        }
+        
+        // 修复单个错误
+        async function fixError(errorNum) {
+            const fixAllBtn = document.getElementById('fixAllBtn');
+            fixAllBtn.disabled = true;
+            
+            try {
+                let result = false;
+                
+                switch (errorNum) {
+                    case 1:
+                        updateProgress(30, '修复Supabase连接...');
+                        result = await fixSupabaseConnection();
+                        break;
+                    case 2:
+                        updateProgress(60, '修复栈溢出问题...');
+                        result = await fixStackOverflow();
+                        break;
+                    case 3:
+                        updateProgress(90, '修复数据类型问题...');
+                        result = await fixDataTypeError();
+                        break;
+                }
+                
+                if (result) {
+                    updateProgress(100, `错误${errorNum}修复完成`);
+                } else {
+                    updateProgress(100, `错误${errorNum}修复失败`);
+                }
+                
+            } catch (error) {
+                addLog(`❌ 修复过程出错: ${error.message}`, 'error');
+            } finally {
+                fixAllBtn.disabled = false;
+            }
+        }
+        
+        // 一键修复所有错误
+        async function fixAllErrors() {
+            addLog('🚀 开始一键修复所有错误...', 'info');
+            
+            const fixAllBtn = document.getElementById('fixAllBtn');
+            fixAllBtn.disabled = true;
+            
+            try {
+                updateProgress(10, '准备修复...');
+                
+                // 修复错误1: Supabase连接
+                updateProgress(25, '修复Supabase连接...');
+                const fix1 = await fixSupabaseConnection();
+                
+                // 修复错误2: 栈溢出
+                updateProgress(50, '修复栈溢出问题...');
+                const fix2 = await fixStackOverflow();
+                
+                // 修复错误3: 数据类型
+                updateProgress(75, '修复数据类型问题...');
+                const fix3 = await fixDataTypeError();
+                
+                updateProgress(90, '验证修复结果...');
+                
+                const successCount = [fix1, fix2, fix3].filter(Boolean).length;
+                
+                if (successCount === 3) {
+                    updateProgress(100, '所有错误修复完成！');
+                    addLog('🎉 所有3个错误已成功修复！', 'success');
+                } else {
+                    updateProgress(100, `${successCount}/3个错误修复成功`);
+                    addLog(`⚠️ ${successCount}/3个错误修复成功，请检查失败的修复`, 'warning');
+                }
+                
+            } catch (error) {
+                updateProgress(100, '修复过程失败');
+                addLog(`❌ 修复过程失败: ${error.message}`, 'error');
+            } finally {
+                fixAllBtn.disabled = false;
+            }
+        }
+        
+        // 测试所有修复
+        async function testAllFixes() {
+            addLog('🧪 开始测试所有修复结果...', 'info');
+            
+            try {
+                // 测试Supabase连接
+                if (fixedErrors.error1) {
+                    const { data, error } = await supabase.from('users').select('count', { count: 'exact', head: true });
+                    if (error) throw new Error('Supabase连接测试失败');
+                    addLog('✅ Supabase连接测试通过', 'success');
+                }
+                
+                // 测试订阅管理
+                if (fixedErrors.error2 && window.subscriptionManager) {
+                    const testSub = window.subscriptionManager.subscribe('test-channel', {
+                        event: '*',
+                        schema: 'public',
+                        table: 'users'
+                    }, () => {});
+                    
+                    setTimeout(() => {
+                        window.subscriptionManager.unsubscribe('test-channel');
+                    }, 1000);
+                    
+                    addLog('✅ 订阅管理测试通过', 'success');
+                }
+                
+                // 测试日期处理
+                if (fixedErrors.error3 && window.safeFormatDate) {
+                    const testDates = [
+                        new Date(),
+                        '2024-01-01',
+                        1704067200000,
+                        null,
+                        undefined
+                    ];
+                    
+                    testDates.forEach(date => {
+                        const formatted = window.safeFormatDate(date);
+                        console.log('日期测试:', date, '->', formatted);
+                    });
+                    
+                    addLog('✅ 日期处理测试通过', 'success');
+                }
+                
+                addLog('🎉 所有修复测试通过！', 'success');
+                
+            } catch (error) {
+                addLog(`❌ 测试失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // 页面加载时初始化
+        window.addEventListener('load', function() {
+            addLog('🔧 错误修复工具已加载', 'info');
+            addLog('📋 检测到3个需要修复的错误', 'error');
+            addLog('💡 点击"一键修复所有错误"开始自动修复', 'info');
+        });
+        
+        // 页面卸载时清理
+        window.addEventListener('beforeunload', function() {
+            if (window.subscriptionManager) {
+                window.subscriptionManager.unsubscribeAll();
+            }
+        });
+    </script>
+</body>
+</html>

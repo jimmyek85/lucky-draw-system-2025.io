@@ -45,9 +45,9 @@ CREATE TABLE users (
     phone TEXT UNIQUE NOT NULL,
     email TEXT,
     address TEXT,
-    drawChances INTEGER DEFAULT 1,
-    joinDate TIMESTAMPTZ DEFAULT NOW(),
-    prizesWon JSONB DEFAULT '[]'::jsonb,
+    drawchances INTEGER DEFAULT 1,
+    joindate TIMESTAMPTZ DEFAULT NOW(),
+    prizeswon JSONB DEFAULT '[]'::jsonb,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -55,7 +55,7 @@ CREATE TABLE users (
 -- 创建索引
 CREATE INDEX idx_users_phone ON users(phone);
 CREATE INDEX idx_users_name ON users(name);
-CREATE INDEX idx_users_joinDate ON users(joinDate);
+CREATE INDEX idx_users_joindate ON users(joindate);
 ```
 
 #### 2. 设置表 (settings)

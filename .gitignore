@@ -1,0 +1,103 @@
+# 环境变量和敏感信息
+.env
+.env.local
+.env.production
+.env.development
+
+# 日志文件
+*.log
+server.log
+logs/
+
+# 本地数据库
+*.db
+*.sqlite
+*.sqlite3
+luckydraw.db
+
+# AI助手配置目录
+.gemini/
+
+# 临时文件
+*.tmp
+*.temp
+*.cache
+
+# 系统文件
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE和编辑器文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Node.js (如果将来使用)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python (如果使用Python后端)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 备份文件
+*.bak
+*.backup
+*.old
+
+# 压缩文件
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# 媒体文件（大文件）
+*.mp4
+*.avi
+*.mov
+*.wmv
+*.flv
+*.webm
+
+# 测试覆盖率报告
+coverage/
+*.lcov
+
+# 部署相关
+.vercel
+.netlify
+
+# 本地配置文件
+config.local.js
+supabase-config.local.js

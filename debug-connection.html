@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>连接问题诊断工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .diagnostic-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .code-block {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="diagnostic-container">
+        <h1>🔍 前后端连接问题诊断工具</h1>
+        <p>此工具将深度检测前端用户数据无法保存到后端数据库的问题</p>
+        
+        <button onclick="runFullDiagnostic()">🚀 开始完整诊断</button>
+        <button onclick="testUserRegistration()">👤 测试用户注册流程</button>
+        <button onclick="checkOfflineMode()">📱 检查离线模式状态</button>
+        <button onclick="clearResults()">🗑️ 清除结果</button>
+        
+        <div id="diagnostic-results"></div>
+    </div>
+
+    <!-- 加载配置文件 -->
+    <script src="supabase-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <script>
+        let supabase;
+        let diagnosticResults = document.getElementById('diagnostic-results');
+        let isOfflineMode = false;
+        
+        // 初始化 Supabase 客户端
+        try {
+            supabase = window.supabase.createClient(
+                window.SUPABASE_CONFIG?.SUPABASE_URL || 'https://your-project-id.supabase.co',
+                window.SUPABASE_CONFIG?.SUPABASE_ANON_KEY || 'your-supabase-anon-key-here'
+            );
+            addResult('✅ Supabase 客户端初始化成功', 'success');
+        } catch (error) {
+            addResult('❌ Supabase 客户端初始化失败: ' + error.message, 'error');
+        }
+        
+        function addResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong> - ${message}`;
+            diagnosticResults.appendChild(div);
+            diagnosticResults.scrollTop = diagnosticResults.scrollHeight;
+        }
+        
+        function addCodeBlock(title, code) {
+            const div = document.createElement('div');
+            div.innerHTML = `<h4>${title}</h4><div class="code-block">${code}</div>`;
+            diagnosticResults.appendChild(div);
+        }
+        
+        function clearResults() {
+            diagnosticResults.innerHTML = '';
+        }
+        
+        async function runFullDiagnostic() {
+            clearResults();
+            addResult('🚀 开始完整的连接问题诊断...', 'info');
+            
+            // 1. 检查配置
+            await checkConfiguration();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // 2. 检查网络连接
+            await checkNetworkConnection();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // 3. 检查 Supabase 连接
+            await checkSupabaseConnection();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // 4. 检查数据库权限
+            await checkDatabasePermissions();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // 5. 检查离线模式
+            await checkOfflineMode();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // 6. 测试用户注册
+            await testUserRegistration();
+            
+            addResult('🎉 诊断完成！请查看上述结果找出问题原因。', 'success');
+        }
+        
+        async function checkConfiguration() {
+            addResult('📋 检查配置文件...', 'info');
+            
+            try {
+                const config = window.SUPABASE_CONFIG;
+                if (!config) {
+                    addResult('❌ 未找到 SUPABASE_CONFIG 配置', 'error');
+                    return;
+                }
+                
+                addResult(`✅ Supabase URL: ${config.SUPABASE_URL}`, 'success');
+                addResult(`✅ API Key 长度: ${config.SUPABASE_ANON_KEY?.length || 0} 字符`, 'success');
+                
+                if (config.SUPABASE_URL === 'https://your-project-id.supabase.co') {
+                    addResult('❌ 配置文件中的 URL 未更新，仍为默认值', 'error');
+                }
+                
+                if (config.SUPABASE_ANON_KEY === 'your-supabase-anon-key-here') {
+                    addResult('❌ 配置文件中的 API Key 未更新，仍为默认值', 'error');
+                }
+                
+                const status = window.getSupabaseConfigStatus();
+                addCodeBlock('配置状态详情', JSON.stringify(status, null, 2));
+                
+            } catch (error) {
+                addResult('❌ 配置检查失败: ' + error.message, 'error');
+            }
+        }
+        
+        async function checkNetworkConnection() {
+            addResult('🌐 检查网络连接...', 'info');
+            
+            try {
+                // 检查基本网络连接
+                const response = await fetch('https://www.google.com/favicon.ico', {
+                    method: 'HEAD',
+                    mode: 'no-cors'
+                });
+                addResult('✅ 基本网络连接正常', 'success');
+                
+                // 检查 Supabase 服务器连接
+                const supabaseResponse = await fetch(window.SUPABASE_CONFIG.SUPABASE_URL + '/rest/v1/', {
+                    method: 'HEAD',
+                    headers: {
+                        'apikey': window.SUPABASE_CONFIG.SUPABASE_ANON_KEY
+                    }
+                });
+                
+                if (supabaseResponse.ok) {
+                    addResult('✅ Supabase 服务器可访问', 'success');
+                } else {
+                    addResult(`❌ Supabase 服务器响应异常: ${supabaseResponse.status} ${supabaseResponse.statusText}`, 'error');
+                }
+                
+            } catch (error) {
+                addResult('❌ 网络连接检查失败: ' + error.message, 'error');
+                addResult('⚠️ 可能的原因：网络问题、防火墙阻止、或 Supabase 服务器不可用', 'warning');
+            }
+        }
+        
+        async function checkSupabaseConnection() {
+            addResult('🔗 检查 Supabase 连接...', 'info');
+            
+            try {
+                // 测试基础连接
+                const { data, error } = await supabase.from('users').select('count').limit(1);
+                
+                if (error) {
+                    if (error.code === 'PGRST116') {
+                        addResult('✅ Supabase 连接成功（用户表为空）', 'success');
+                    } else {
+                        addResult(`❌ Supabase 连接错误: ${error.message}`, 'error');
+                        addCodeBlock('错误详情', JSON.stringify(error, null, 2));
+                        
+                        // 分析常见错误
+                        if (error.message.includes('JWT')) {
+                            addResult('💡 可能原因：API Key 无效或已过期', 'warning');
+                        } else if (error.message.includes('permission')) {
+                            addResult('💡 可能原因：数据库权限配置问题', 'warning');
+                        } else if (error.message.includes('network')) {
+                            addResult('💡 可能原因：网络连接问题', 'warning');
+                        }
+                        return;
+                    }
+                } else {
+                    addResult('✅ Supabase 连接成功', 'success');
+                }
+                
+            } catch (error) {
+                addResult('❌ Supabase 连接测试失败: ' + error.message, 'error');
+                addCodeBlock('错误堆栈', error.stack || '无堆栈信息');
+            }
+        }
+        
+        async function checkDatabasePermissions() {
+            addResult('🔐 检查数据库权限...', 'info');
+            
+            try {
+                // 测试读取权限
+                const { data: readTest, error: readError } = await supabase
+                    .from('users')
+                    .select('*')
+                    .limit(1);
+                
+                if (readError) {
+                    addResult(`❌ 读取权限测试失败: ${readError.message}`, 'error');
+                } else {
+                    addResult('✅ 读取权限正常', 'success');
+                }
+                
+                // 测试写入权限（创建测试用户）
+                const testUser = {
+                    name: 'Test User ' + Date.now(),
+                    phone: 'test_' + Date.now(),
+                    email: 'test@example.com',
+                    address: 'Test Address',
+                    drawchances: 1,
+                    joindate: new Date().toISOString(),
+                    prizeswon: []
+                };
+                
+                const { data: insertTest, error: insertError } = await supabase
+                    .from('users')
+                    .insert([testUser])
+                    .select()
+                    .single();
+                
+                if (insertError) {
+                    addResult(`❌ 写入权限测试失败: ${insertError.message}`, 'error');
+                    addCodeBlock('写入错误详情', JSON.stringify(insertError, null, 2));
+                    
+                    // 分析权限错误
+                    if (insertError.message.includes('RLS')) {
+                        addResult('💡 可能原因：行级安全策略(RLS)阻止了数据插入', 'warning');
+                        addResult('💡 解决方案：检查 Supabase Dashboard 中的 RLS 策略配置', 'warning');
+                    } else if (insertError.message.includes('permission')) {
+                        addResult('💡 可能原因：anon 角色没有 INSERT 权限', 'warning');
+                        addResult('💡 解决方案：在 Supabase Dashboard 中为 anon 角色添加 INSERT 权限', 'warning');
+                    }
+                } else {
+                    addResult('✅ 写入权限正常', 'success');
+                    addResult(`✅ 测试用户创建成功: ${insertTest.name} (${insertTest.phone})`, 'success');
+                    
+                    // 清理测试数据
+                    await supabase.from('users').delete().eq('phone', testUser.phone);
+                    addResult('🧹 测试数据已清理', 'info');
+                }
+                
+            } catch (error) {
+                addResult('❌ 权限检查失败: ' + error.message, 'error');
+            }
+        }
+        
+        async function checkOfflineMode() {
+            addResult('📱 检查离线模式状态...', 'info');
+            
+            try {
+                // 检查本地存储中的离线用户数据
+                const offlineUser = localStorage.getItem('offlineUser');
+                if (offlineUser) {
+                    const userData = JSON.parse(offlineUser);
+                    addResult('⚠️ 发现离线用户数据！这可能是问题的根源', 'warning');
+                    addCodeBlock('离线用户数据', JSON.stringify(userData, null, 2));
+                    addResult('💡 用户数据被保存在本地存储中，而不是 Supabase 数据库', 'warning');
+                    addResult('💡 这通常发生在 Supabase 连接失败时，系统自动启用离线模式', 'warning');
+                } else {
+                    addResult('✅ 未发现离线用户数据', 'success');
+                }
+                
+                // 检查是否有离线模式指示器
+                const offlineNotice = document.querySelector('.fixed.top-0.bg-yellow-600');
+                if (offlineNotice) {
+                    addResult('⚠️ 检测到离线模式提示条', 'warning');
+                } else {
+                    addResult('✅ 未检测到离线模式提示', 'success');
+                }
+                
+            } catch (error) {
+                addResult('❌ 离线模式检查失败: ' + error.message, 'error');
+            }
+        }
+        
+        async function testUserRegistration() {
+            addResult('👤 测试用户注册流程...', 'info');
+            
+            try {
+                const testUser = {
+                    name: 'Diagnostic Test User',
+                    phone: '+60123456789_test_' + Date.now(),
+                    email: 'diagnostic@test.com',
+                    address: 'Test Address for Diagnostic',
+                    drawchances: 1,
+                    joindate: new Date().toISOString(),
+                    prizeswon: []
+                };
+                
+                addResult('📝 尝试注册测试用户...', 'info');
+                addCodeBlock('测试用户数据', JSON.stringify(testUser, null, 2));
+                
+                // 检查用户是否已存在
+                const { data: existingUser, error: fetchError } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('phone', testUser.phone)
+                    .single();
+                
+                if (existingUser && !fetchError) {
+                    addResult('ℹ️ 测试用户已存在，跳过注册', 'info');
+                } else {
+                    // 尝试注册新用户
+                    const { data: newUser, error: insertError } = await supabase
+                        .from('users')
+                        .insert([testUser])
+                        .select()
+                        .single();
+                    
+                    if (insertError) {
+                        addResult(`❌ 用户注册失败: ${insertError.message}`, 'error');
+                        addCodeBlock('注册错误详情', JSON.stringify(insertError, null, 2));
+                        
+                        // 这里是关键：如果注册失败，系统会启用离线模式
+                        addResult('🔍 这就是问题所在！用户注册失败导致系统启用离线模式', 'error');
+                        addResult('💡 用户数据被保存到本地存储而不是数据库', 'warning');
+                        
+                    } else {
+                        addResult('✅ 用户注册成功！', 'success');
+                        addCodeBlock('注册成功的用户数据', JSON.stringify(newUser, null, 2));
+                        
+                        // 清理测试数据
+                        await supabase.from('users').delete().eq('phone', testUser.phone);
+                        addResult('🧹 测试用户已清理', 'info');
+                    }
+                }
+                
+            } catch (error) {
+                addResult('❌ 用户注册测试失败: ' + error.message, 'error');
+                addResult('🔍 这可能就是用户数据无法保存到数据库的原因！', 'error');
+            }
+        }
+        
+        // 页面加载时自动运行基础检查
+        window.addEventListener('load', () => {
+            addResult('🌟 连接问题诊断工具已加载', 'info');
+            addResult('💡 点击"开始完整诊断"按钮来检测前后端连接问题', 'info');
+        });
+    </script>
+</body>
+</html>

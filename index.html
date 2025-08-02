@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>1602 Lucky Draw</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
@@ -252,16 +254,28 @@
     <!-- API Configuration -->
     <script src="config.js"></script>
     <script src="supabase-config.js"></script>
+    <script src="supabase-connection.js"></script>
     <script src="ai-features.js"></script>
+    <script src="fix-connection.js"></script>
     
-    <script type="module">
-        import { createClient } from 'https://cdn.skypack.dev/@supabase/supabase-js@2';
-
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // 浏览器兼容性检查
+        if (!window.fetch) {
+            console.error('This browser does not support fetch API. Please use a modern browser.');
+        }
+        
         // 初始化 Supabase 客户端
-        const supabase = createClient(
-            window.SUPABASE_CONFIG?.SUPABASE_URL || 'https://your-project-id.supabase.co',
-            window.SUPABASE_CONFIG?.SUPABASE_ANON_KEY || 'your-supabase-anon-key-here'
-        );
+        let supabase;
+        try {
+            supabase = window.supabase.createClient(
+                window.SUPABASE_CONFIG?.SUPABASE_URL || 'https://your-project-id.supabase.co',
+                window.SUPABASE_CONFIG?.SUPABASE_ANON_KEY || 'your-supabase-anon-key-here'
+            );
+        } catch (error) {
+            console.error('Failed to initialize Supabase client:', error);
+            supabase = null;
+        }
         
         // 数据库表名
         const TABLES = window.SUPABASE_CONFIG?.TABLES || {
@@ -429,17 +443,17 @@
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const prizes = [
-            { text: "Cash Voucher RM5", color: "#fde047", percentage: 10 },
-            { text: "Thank You", color: "#4b5563", percentage: 26 },
-            { text: "Online Voucher RM10", color: "#60a5fa", percentage: 8 },
-            { text: "Free 660ml Bottle", color: "#ef4444", percentage: 16 },
-            { text: "1602 Mug", color: "#a78bfa", percentage: 8 },
-            { text: "Spin Again!", color: "#f97316", percentage: 4 },
-            { text: "Online Voucher RM20", color: "#22c55e", percentage: 8 },
-            { text: "1602 Pen", color: "#ec4899", percentage: 7 },
-            { text: "Wine Card", color: "#d946ef", percentage: 2 },
+            { text: "Cash Voucher RM5", color: "#fde047", percentage: 18 },
+            { text: "Thank You", color: "#4b5563", percentage: 25 },
+            { text: "Online Voucher RM10", color: "#60a5fa", percentage: 7 },
+            { text: "Free 660ml Bottle", color: "#ef4444", percentage: 8 },
+            { text: "1602 Mug", color: "#a78bfa", percentage: 0 },
+            { text: "Spin Again!", color: "#f97316", percentage: 9 },
+            { text: "Online Voucher RM20", color: "#22c55e", percentage: 5 },
+            { text: "1602 Pen", color: "#ec4899", percentage: 9 },
+            { text: "Wine Card", color: "#d946ef", percentage: 0 },
             { text: "Cooler Bag", color: "#14b8a6", percentage: 7 },
-            { text: "New 330ml Can", color: "#84cc16", percentage: 4 },
+            { text: "New 330ml Can", color: "#84cc16", percentage: 12 },
         ];
 
         let totalPercentage = 0;
@@ -548,7 +562,7 @@
         }
 
         function spin() {
-            if (isSpinning || currentUser.drawChances <= 0) return;
+            if (isSpinning || currentUser.drawchances <= 0) return;
             isSpinning = true;
             spinBtn.disabled = true;
             document.getElementById('wheel-wrapper').classList.add('spinning-neon');
@@ -578,11 +592,11 @@
         }
 
         async function handlePrize(prize) {
-            let newChances = currentUser.drawChances - 1;
+            let newChances = currentUser.drawchances - 1;
 
             const prizeText = langData[currentLang][prize.text] || prize.text;
 
-            const updatedPrizes = currentUser.prizesWon || [];
+            const updatedPrizes = currentUser.prizeswon || [];
             updatedPrizes.push({ prize: prize.text, timestamp: new Date() });
             
             const isOnlineVoucher = prize.text.includes("Online Voucher");
@@ -607,8 +621,8 @@
             }
 
             // 更新用户数据
-            currentUser.drawChances = newChances;
-            currentUser.prizesWon = updatedPrizes;
+            currentUser.drawchances = newChances;
+            currentUser.prizeswon = updatedPrizes;
 
             if (isOfflineMode) {
                 // 离线模式：保存到本地存储
@@ -621,8 +635,8 @@
                     const { error } = await supabase
                         .from(TABLES.USERS)
                         .update({
-                            drawChances: newChances,
-                            prizesWon: updatedPrizes
+                            drawchances: newChances,
+                            prizeswon: updatedPrizes
                         })
                         .eq('phone', currentUser.phone);
                     
@@ -673,8 +687,8 @@
         function setupUserSession(userData) {
             currentUser = userData;
             userNameDisplay.textContent = currentUser.name;
-            updateChancesText(userData.drawChances);
-            spinBtn.disabled = userData.drawChances <= 0;
+            updateChancesText(userData.drawchances);
+            spinBtn.disabled = userData.drawchances <= 0;
 
             landingPageContainer.classList.add('hidden');
             registerPage.classList.add('hidden');
@@ -699,8 +713,8 @@
                     }, (payload) => {
                         if (payload.new) {
                             currentUser = payload.new;
-                            updateChancesText(currentUser.drawChances);
-                            spinBtn.disabled = currentUser.drawChances <= 0 || isSpinning;
+                            updateChancesText(currentUser.drawchances);
+                            spinBtn.disabled = currentUser.drawchances <= 0 || isSpinning;
                         }
                     })
                     .subscribe();
@@ -729,26 +743,19 @@
 
             const phone = countryCode + phoneInput;
 
-            if (isOfflineMode) {
-                // 离线模式处理
-                const newUser = {
-                    name,
-                    phone,
-                    email,
-                    address,
-                    drawChances: 1,
-                    joinDate: new Date().toISOString(),
-                    prizesWon: []
-                };
-                offlineUserData = newUser;
-                localStorage.setItem('offlineUser', JSON.stringify(newUser));
-                alert(langData[currentLang]["Registration successful! (Offline mode)"]);
-                setupUserSession(newUser);
-                return;
-            }
-
+            // 首先尝试连接Supabase
             try {
-                // 检查用户是否已存在
+                // 测试Supabase连接
+                const { data: connectionTest, error: connectionError } = await supabase
+                    .from(TABLES.USERS)
+                    .select('count')
+                    .limit(1);
+                
+                if (connectionError && connectionError.code !== 'PGRST116') {
+                    throw new Error(`Supabase连接失败: ${connectionError.message}`);
+                }
+
+                // 连接成功，检查用户是否已存在
                 const { data: existingUser, error: fetchError } = await supabase
                     .from(TABLES.USERS)
                     .select('*')
@@ -758,15 +765,22 @@
                 if (existingUser && !fetchError) {
                     alert(langData[currentLang]["User already exists. Loading your data..."]);
                     setupUserSession(existingUser);
+                    // 确保不在离线模式
+                    if (isOfflineMode) {
+                        isOfflineMode = false;
+                        const offlineNotice = document.querySelector('.fixed.top-0.bg-yellow-600');
+                        if (offlineNotice) offlineNotice.remove();
+                    }
                 } else {
+                    // 创建新用户
                     const newUser = {
                         name,
                         phone,
                         email,
                         address,
-                        drawChances: 1,
-                        joinDate: new Date().toISOString(),
-                        prizesWon: []
+                        drawchances: 1,
+                        joindate: new Date().toISOString(),
+                        prizeswon: []
                     };
                     
                     const { data, error } = await supabase
@@ -775,14 +789,49 @@
                         .select()
                         .single();
                     
-                    if (error) throw error;
+                    if (error) {
+                        console.error("用户插入错误:", error);
+                        throw new Error(`用户注册失败: ${error.message}`);
+                    }
                     
                     alert(langData[currentLang]["Registration successful!"]);
                     setupUserSession(data);
+                    
+                    // 确保不在离线模式
+                    if (isOfflineMode) {
+                        isOfflineMode = false;
+                        const offlineNotice = document.querySelector('.fixed.top-0.bg-yellow-600');
+                        if (offlineNotice) offlineNotice.remove();
+                    }
                 }
             } catch (error) {
-                console.error("Registration error:", error);
-                alert(langData[currentLang]["Registration failed. Please try again."]);
+                console.error("注册过程中发生错误:", error);
+                console.log("启用离线模式...");
+                
+                // Supabase连接失败，启用离线模式
+                if (!isOfflineMode) {
+                    enableOfflineMode();
+                }
+                
+                const newUser = {
+                    name,
+                    phone,
+                    email,
+                    address,
+                    drawchances: 1,
+                    joindate: new Date().toISOString(),
+                    prizeswon: []
+                };
+                
+                offlineUserData = newUser;
+                localStorage.setItem('offlineUser', JSON.stringify(newUser));
+                
+                const offlineMessage = currentLang === 'zh' 
+                    ? "注册成功！(离线模式 - 数据将在连接恢复后同步)"
+                    : "Registration successful! (Offline mode - data will sync when connection is restored)";
+                
+                alert(offlineMessage);
+                setupUserSession(newUser);
             }
         }
         

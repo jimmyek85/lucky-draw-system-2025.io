@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase 数据库配置检查</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: white;
+        }
+        .check-section {
+            background-color: #2a2a2a;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .warning { color: #ff9800; }
+        .info { color: #2196F3; }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #45a049; }
+        .log {
+            background-color: #000;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+        }
+        .status-item {
+            background-color: #333;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #666;
+        }
+        .status-item.success { border-left-color: #4CAF50; }
+        .status-item.error { border-left-color: #f44336; }
+        .status-item.warning { border-left-color: #ff9800; }
+        .status-item.info { border-left-color: #2196F3; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Supabase 数据库配置检查</h1>
+    
+    <div class="check-section">
+        <h2>📊 总体状态</h2>
+        <button onclick="runFullCheck()">🚀 运行完整检查</button>
+        <button onclick="clearResults()">🗑️ 清除结果</button>
+        <div id="overall-status" class="status-grid"></div>
+    </div>
+
+    <div class="check-section">
+        <h2>🔗 连接测试</h2>
+        <button onclick="testConnection()">测试连接</button>
+        <div id="connection-results"></div>
+    </div>
+
+    <div class="check-section">
+        <h2>📋 表结构检查</h2>
+        <button onclick="checkTables()">检查表结构</button>
+        <div id="table-results"></div>
+    </div>
+
+    <div class="check-section">
+        <h2>🔐 权限检查</h2>
+        <button onclick="checkPermissions()">检查权限</button>
+        <div id="permission-results"></div>
+    </div>
+
+    <div class="check-section">
+        <h2>📊 数据检查</h2>
+        <button onclick="checkData()">检查现有数据</button>
+        <div id="data-results"></div>
+    </div>
+
+    <div class="check-section">
+        <h2>🔄 实时功能检查</h2>
+        <button onclick="testRealtime()">测试实时订阅</button>
+        <div id="realtime-results"></div>
+    </div>
+
+    <div class="check-section">
+        <h2>📝 详细日志</h2>
+        <button onclick="clearLog()">清除日志</button>
+        <div id="detailed-log" class="log"></div>
+    </div>
+
+    <script src="supabase-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        let supabase;
+        let detailedLog = [];
+        let checkResults = {
+            connection: null,
+            tables: null,
+            permissions: null,
+            data: null,
+            realtime: null
+        };
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}`;
+            detailedLog.push(logEntry);
+            
+            const logDiv = document.getElementById('detailed-log');
+            logDiv.textContent = detailedLog.join('\n');
+            logDiv.scrollTop = logDiv.scrollHeight;
+            
+            console.log(logEntry);
+        }
+
+        function updateOverallStatus() {
+            const statusDiv = document.getElementById('overall-status');
+            let html = '';
+            
+            Object.entries(checkResults).forEach(([key, result]) => {
+                const statusClass = result === null ? 'info' : (result ? 'success' : 'error');
+                const statusText = result === null ? '未检查' : (result ? '✅ 正常' : '❌ 异常');
+                const keyName = {
+                    connection: '连接状态',
+                    tables: '表结构',
+                    permissions: '权限配置',
+                    data: '数据状态',
+                    realtime: '实时功能'
+                }[key];
+                
+                html += `<div class="status-item ${statusClass}">
+                    <h4>${keyName}</h4>
+                    <p>${statusText}</p>
+                </div>`;
+            });
+            
+            statusDiv.innerHTML = html;
+        }
+
+        async function initSupabase() {
+            try {
+                if (!window.SUPABASE_CONFIG) {
+                    throw new Error('SUPABASE_CONFIG 配置未找到');
+                }
+                
+                supabase = window.supabase.createClient(
+                    window.SUPABASE_CONFIG.SUPABASE_URL,
+                    window.SUPABASE_CONFIG.SUPABASE_ANON_KEY
+                );
+                
+                log('✅ Supabase 客户端初始化成功');
+                return true;
+            } catch (error) {
+                log(`❌ Supabase 初始化失败: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function testConnection() {
+            const resultDiv = document.getElementById('connection-results');
+            resultDiv.innerHTML = '检查中...';
+            
+            try {
+                if (!supabase) {
+                    const initialized = await initSupabase();
+                    if (!initialized) {
+                        throw new Error('无法初始化 Supabase 客户端');
+                    }
+                }
+                
+                // 测试基本连接
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('count', { count: 'exact', head: true });
+                
+                if (error) {
+                    throw error;
+                }
+                
+                checkResults.connection = true;
+                resultDiv.innerHTML = '<span class="success">✅ 数据库连接正常</span>';
+                log('✅ 数据库连接测试成功');
+                
+            } catch (error) {
+                checkResults.connection = false;
+                resultDiv.innerHTML = `<span class="error">❌ 连接失败: ${error.message}</span>`;
+                log(`❌ 连接测试失败: ${error.message}`, 'error');
+            }
+            
+            updateOverallStatus();
+        }
+
+        async function checkTables() {
+            const resultDiv = document.getElementById('table-results');
+            resultDiv.innerHTML = '检查中...';
+            
+            try {
+                const requiredTables = ['users', 'settings', 'knowledge'];
+                let html = '<h4>表结构检查结果:</h4>';
+                let allTablesOk = true;
+                
+                for (const tableName of requiredTables) {
+                    try {
+                        // 检查表是否存在并获取结构信息
+                        const { data, error } = await supabase
+                            .from(tableName)
+                            .select('*')
+                            .limit(1);
+                        
+                        if (error && error.code === '42P01') {
+                            html += `<div class="error">❌ 表 '${tableName}' 不存在</div>`;
+                            allTablesOk = false;
+                            log(`❌ 表 '${tableName}' 不存在`, 'error');
+                        } else if (error) {
+                            html += `<div class="warning">⚠️ 表 '${tableName}' 访问异常: ${error.message}</div>`;
+                            log(`⚠️ 表 '${tableName}' 访问异常: ${error.message}`, 'warning');
+                        } else {
+                            html += `<div class="success">✅ 表 '${tableName}' 存在且可访问</div>`;
+                            log(`✅ 表 '${tableName}' 检查通过`);
+                        }
+                    } catch (tableError) {
+                        html += `<div class="error">❌ 检查表 '${tableName}' 时出错: ${tableError.message}</div>`;
+                        allTablesOk = false;
+                        log(`❌ 检查表 '${tableName}' 时出错: ${tableError.message}`, 'error');
+                    }
+                }
+                
+                checkResults.tables = allTablesOk;
+                resultDiv.innerHTML = html;
+                
+            } catch (error) {
+                checkResults.tables = false;
+                resultDiv.innerHTML = `<span class="error">❌ 表结构检查失败: ${error.message}</span>`;
+                log(`❌ 表结构检查失败: ${error.message}`, 'error');
+            }
+            
+            updateOverallStatus();
+        }
+
+        async function checkPermissions() {
+            const resultDiv = document.getElementById('permission-results');
+            resultDiv.innerHTML = '检查中...';
+            
+            try {
+                let html = '<h4>权限检查结果:</h4>';
+                let allPermissionsOk = true;
+                
+                // 测试读取权限
+                try {
+                    const { data: readData, error: readError } = await supabase
+                        .from('users')
+                        .select('*')
+                        .limit(1);
+                    
+                    if (readError) {
+                        html += `<div class="error">❌ 读取权限异常: ${readError.message}</div>`;
+                        allPermissionsOk = false;
+                        log(`❌ 读取权限测试失败: ${readError.message}`, 'error');
+                    } else {
+                        html += `<div class="success">✅ 读取权限正常</div>`;
+                        log('✅ 读取权限测试通过');
+                    }
+                } catch (readTestError) {
+                    html += `<div class="error">❌ 读取权限测试出错: ${readTestError.message}</div>`;
+                    allPermissionsOk = false;
+                }
+                
+                // 测试写入权限
+                try {
+                    const testData = {
+                        name: 'Permission Test User',
+                        phone: '+60000000000',
+                        email: 'test@permission.com',
+                        address: 'Test Address',
+                        created_at: new Date().toISOString()
+                    };
+                    
+                    const { data: insertData, error: insertError } = await supabase
+                        .from('users')
+                        .insert([testData])
+                        .select();
+                    
+                    if (insertError) {
+                        html += `<div class="error">❌ 写入权限异常: ${insertError.message}</div>`;
+                        allPermissionsOk = false;
+                        log(`❌ 写入权限测试失败: ${insertError.message}`, 'error');
+                    } else {
+                        html += `<div class="success">✅ 写入权限正常</div>`;
+                        log('✅ 写入权限测试通过');
+                        
+                        // 清理测试数据
+                        await supabase
+                            .from('users')
+                            .delete()
+                            .eq('phone', '+60000000000');
+                        log('🗑️ 测试数据已清理');
+                    }
+                } catch (writeTestError) {
+                    html += `<div class="error">❌ 写入权限测试出错: ${writeTestError.message}</div>`;
+                    allPermissionsOk = false;
+                }
+                
+                checkResults.permissions = allPermissionsOk;
+                resultDiv.innerHTML = html;
+                
+            } catch (error) {
+                checkResults.permissions = false;
+                resultDiv.innerHTML = `<span class="error">❌ 权限检查失败: ${error.message}</span>`;
+                log(`❌ 权限检查失败: ${error.message}`, 'error');
+            }
+            
+            updateOverallStatus();
+        }
+
+        async function checkData() {
+            const resultDiv = document.getElementById('data-results');
+            resultDiv.innerHTML = '检查中...';
+            
+            try {
+                let html = '<h4>数据检查结果:</h4>';
+                let dataOk = true;
+                
+                // 检查用户数据
+                const { data: users, error: usersError } = await supabase
+                    .from('users')
+                    .select('*', { count: 'exact' });
+                
+                if (usersError) {
+                    html += `<div class="error">❌ 用户数据查询失败: ${usersError.message}</div>`;
+                    dataOk = false;
+                } else {
+                    html += `<div class="info">ℹ️ 用户数据: ${users.length} 条记录</div>`;
+                    log(`📊 用户数据统计: ${users.length} 条记录`);
+                }
+                
+                // 检查设置数据
+                const { data: settings, error: settingsError } = await supabase
+                    .from('settings')
+                    .select('*', { count: 'exact' });
+                
+                if (settingsError) {
+                    html += `<div class="error">❌ 设置数据查询失败: ${settingsError.message}</div>`;
+                    dataOk = false;
+                } else {
+                    html += `<div class="info">ℹ️ 设置数据: ${settings.length} 条记录</div>`;
+                    log(`📊 设置数据统计: ${settings.length} 条记录`);
+                }
+                
+                // 检查知识库数据
+                const { data: knowledge, error: knowledgeError } = await supabase
+                    .from('knowledge')
+                    .select('*', { count: 'exact' });
+                
+                if (knowledgeError) {
+                    html += `<div class="error">❌ 知识库数据查询失败: ${knowledgeError.message}</div>`;
+                    dataOk = false;
+                } else {
+                    html += `<div class="info">ℹ️ 知识库数据: ${knowledge.length} 条记录</div>`;
+                    log(`📊 知识库数据统计: ${knowledge.length} 条记录`);
+                }
+                
+                checkResults.data = dataOk;
+                resultDiv.innerHTML = html;
+                
+            } catch (error) {
+                checkResults.data = false;
+                resultDiv.innerHTML = `<span class="error">❌ 数据检查失败: ${error.message}</span>`;
+                log(`❌ 数据检查失败: ${error.message}`, 'error');
+            }
+            
+            updateOverallStatus();
+        }
+
+        async function testRealtime() {
+            const resultDiv = document.getElementById('realtime-results');
+            resultDiv.innerHTML = '检查中...';
+            
+            try {
+                let html = '<h4>实时功能测试结果:</h4>';
+                let realtimeOk = true;
+                
+                // 测试实时订阅
+                const subscription = supabase
+                    .channel('test-channel')
+                    .on('postgres_changes', {
+                        event: '*',
+                        schema: 'public',
+                        table: 'users'
+                    }, (payload) => {
+                        log(`🔄 实时数据变更: ${JSON.stringify(payload)}`);
+                    })
+                    .subscribe((status) => {
+                        log(`🔄 实时订阅状态: ${status}`);
+                        if (status === 'SUBSCRIBED') {
+                            html += `<div class="success">✅ 实时订阅成功</div>`;
+                            resultDiv.innerHTML = html;
+                        } else if (status === 'CHANNEL_ERROR') {
+                            html += `<div class="error">❌ 实时订阅失败</div>`;
+                            realtimeOk = false;
+                            resultDiv.innerHTML = html;
+                        }
+                    });
+                
+                // 5秒后取消订阅
+                setTimeout(() => {
+                    subscription.unsubscribe();
+                    log('🔄 实时订阅已取消');
+                    checkResults.realtime = realtimeOk;
+                    updateOverallStatus();
+                }, 5000);
+                
+                html += `<div class="info">ℹ️ 正在测试实时订阅...</div>`;
+                resultDiv.innerHTML = html;
+                
+            } catch (error) {
+                checkResults.realtime = false;
+                resultDiv.innerHTML = `<span class="error">❌ 实时功能测试失败: ${error.message}</span>`;
+                log(`❌ 实时功能测试失败: ${error.message}`, 'error');
+                updateOverallStatus();
+            }
+        }
+
+        async function runFullCheck() {
+            log('🚀 开始运行完整检查');
+            
+            await testConnection();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            await checkTables();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            await checkPermissions();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            await checkData();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            await testRealtime();
+            
+            log('✅ 完整检查完成');
+        }
+
+        function clearResults() {
+            checkResults = {
+                connection: null,
+                tables: null,
+                permissions: null,
+                data: null,
+                realtime: null
+            };
+            
+            document.getElementById('connection-results').innerHTML = '';
+            document.getElementById('table-results').innerHTML = '';
+            document.getElementById('permission-results').innerHTML = '';
+            document.getElementById('data-results').innerHTML = '';
+            document.getElementById('realtime-results').innerHTML = '';
+            
+            updateOverallStatus();
+            log('🗑️ 检查结果已清除');
+        }
+
+        function clearLog() {
+            detailedLog = [];
+            document.getElementById('detailed-log').textContent = '';
+        }
+
+        // 页面加载时初始化
+        window.addEventListener('load', async () => {
+            log('🚀 数据库配置检查页面加载完成');
+            updateOverallStatus();
+            await initSupabase();
+        });
+    </script>
+</body>
+</html>

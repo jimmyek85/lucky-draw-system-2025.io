@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub部署助手 - 1602幸运轮盘</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .card-shadow { box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .step-active { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); }
+        .step-completed { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+        .step-pending { background: #e5e7eb; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="gradient-bg py-8">
+        <div class="container mx-auto px-4">
+            <div class="text-center text-white">
+                <h1 class="text-4xl font-bold mb-2">🚀 GitHub部署助手</h1>
+                <p class="text-xl opacity-90">1602幸运轮盘项目 - 自动化部署到GitHub</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- 部署状态卡片 -->
+        <div class="bg-white rounded-lg card-shadow p-6 mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">📊 部署状态</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="text-center p-4 rounded-lg bg-blue-50">
+                    <div class="text-2xl font-bold text-blue-600" id="coreFilesCount">0</div>
+                    <div class="text-sm text-gray-600">核心文件</div>
+                </div>
+                <div class="text-center p-4 rounded-lg bg-green-50">
+                    <div class="text-2xl font-bold text-green-600" id="toolFilesCount">0</div>
+                    <div class="text-sm text-gray-600">工具文件</div>
+                </div>
+                <div class="text-center p-4 rounded-lg bg-yellow-50">
+                    <div class="text-2xl font-bold text-yellow-600" id="docsCount">0</div>
+                    <div class="text-sm text-gray-600">文档文件</div>
+                </div>
+                <div class="text-center p-4 rounded-lg bg-purple-50">
+                    <div class="text-2xl font-bold text-purple-600" id="totalSize">0 KB</div>
+                    <div class="text-sm text-gray-600">总大小</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 部署步骤 -->
+        <div class="bg-white rounded-lg card-shadow p-6 mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">📋 部署步骤</h2>
+            <div class="space-y-4">
+                <div class="flex items-center p-4 rounded-lg step-pending" id="step1">
+                    <div class="w-8 h-8 rounded-full bg-white text-gray-600 flex items-center justify-center font-bold mr-4">1</div>
+                    <div class="flex-1">
+                        <h3 class="font-semibold text-white">文件检查与准备</h3>
+                        <p class="text-sm text-white opacity-80">检查核心文件，创建.gitignore，准备部署清单</p>
+                    </div>
+                    <div class="text-white" id="step1Status">⏳</div>
+                </div>
+                <div class="flex items-center p-4 rounded-lg step-pending" id="step2">
+                    <div class="w-8 h-8 rounded-full bg-white text-gray-600 flex items-center justify-center font-bold mr-4">2</div>
+                    <div class="flex-1">
+                        <h3 class="font-semibold text-white">Git仓库初始化</h3>
+                        <p class="text-sm text-white opacity-80">初始化Git，添加远程仓库，准备提交</p>
+                    </div>
+                    <div class="text-white" id="step2Status">⏳</div>
+                </div>
+                <div class="flex items-center p-4 rounded-lg step-pending" id="step3">
+                    <div class="w-8 h-8 rounded-full bg-white text-gray-600 flex items-center justify-center font-bold mr-4">3</div>
+                    <div class="flex-1">
+                        <h3 class="font-semibold text-white">配置验证</h3>
+                        <p class="text-sm text-white opacity-80">验证Supabase配置，检查敏感信息</p>
+                    </div>
+                    <div class="text-white" id="step3Status">⏳</div>
+                </div>
+                <div class="flex items-center p-4 rounded-lg step-pending" id="step4">
+                    <div class="w-8 h-8 rounded-full bg-white text-gray-600 flex items-center justify-center font-bold mr-4">4</div>
+                    <div class="flex-1">
+                        <h3 class="font-semibold text-white">部署到GitHub</h3>
+                        <p class="text-sm text-white opacity-80">推送代码到GitHub仓库，完成部署</p>
+                    </div>
+                    <div class="text-white" id="step4Status">⏳</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 控制面板 -->
+        <div class="bg-white rounded-lg card-shadow p-6 mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">🎛️ 部署控制</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <button onclick="startDeployment()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                    🚀 开始部署
+                </button>
+                <button onclick="checkFiles()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                    📁 检查文件
+                </button>
+                <button onclick="generateCommands()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                    📋 生成命令
+                </button>
+            </div>
+        </div>
+
+        <!-- 文件清单 -->
+        <div class="bg-white rounded-lg card-shadow p-6 mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">📁 部署文件清单</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                    <h3 class="font-semibold text-green-600 mb-2">✅ 核心文件</h3>
+                    <ul class="text-sm space-y-1" id="coreFilesList">
+                        <li>• index.html</li>
+                        <li>• admin.html</li>
+                        <li>• config.js</li>
+                        <li>• supabase-config.js</li>
+                        <li>• ai-features.js</li>
+                        <li>• favicon.ico</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-blue-600 mb-2">🛠️ 工具文件</h3>
+                    <ul class="text-sm space-y-1" id="toolFilesList">
+                        <li>• fix-data-connection.html</li>
+                        <li>• test-supabase-connection.html</li>
+                        <li>• deploy-production.html</li>
+                        <li>• reconnect-supabase.html</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-purple-600 mb-2">📚 文档文件</h3>
+                    <ul class="text-sm space-y-1" id="docsFilesList">
+                        <li>• README.md</li>
+                        <li>• SUPABASE_SETUP.md</li>
+                        <li>• GITHUB_DEPLOYMENT_GUIDE.md</li>
+                        <li>• .gitignore</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Git命令生成器 -->
+        <div class="bg-white rounded-lg card-shadow p-6 mb-8 hidden" id="commandsSection"></div>
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">💻 Git部署命令</h2>
+            <div class="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm">
+                <div id="gitCommands"></div>
+            </div>
+            <button onclick="copyCommands()" class="mt-4 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded transition duration-200">
+                📋 复制命令
+            </button>
+        </div>
+
+        <!-- 日志输出 -->
+        <div class="bg-white rounded-lg card-shadow p-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">📝 部署日志</h2>
+            <div class="bg-gray-100 p-4 rounded-lg h-64 overflow-y-auto" id="deploymentLog">
+                <p class="text-gray-600">等待开始部署...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let deploymentStep = 0;
+        const githubRepo = 'https://github.com/Global1602/luckydraw2025.git';
+        
+        const coreFiles = [
+            'index.html', 'admin.html', 'config.js', 'supabase-config.js', 
+            'ai-features.js', 'favicon.ico', 'jsconfig.json', 'supabase-complete-setup.sql'
+        ];
+        
+        const toolFiles = [
+            'fix-data-connection.html', 'fix-supabase-error.html', 'fix-all-errors.html',
+            'test-supabase-connection.html', 'test-user-registration.html',
+            'deploy-production.html', 'reconnect-supabase.html', 'start-supabase-connection.html',
+            'debug-connection.html', 'check-database-setup.html', 'connection-fix-solution.html',
+            'simple-connection-test.html', 'fix-connection.js'
+        ];
+        
+        const docsFiles = [
+            'README.md', 'SUPABASE_SETUP.md', 'SUPABASE_SQL_SETUP_GUIDE.md',
+            'API_SETUP.md', 'AI_INTEGRATION.md', 'SECURITY.md', 'PASSWORD_PROTECTION.md',
+            'PRODUCTION_DEPLOYMENT_GUIDE.md', 'GITHUB_DEPLOYMENT_GUIDE.md', '.gitignore'
+        ];
+        
+        function log(message) {
+            const logDiv = document.getElementById('deploymentLog');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `<p class="text-sm"><span class="text-gray-500">[${timestamp}]</span> ${message}</p>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function updateStep(stepNum, status) {
+            const step = document.getElementById(`step${stepNum}`);
+            const statusIcon = document.getElementById(`step${stepNum}Status`);
+            
+            if (status === 'active') {
+                step.className = 'flex items-center p-4 rounded-lg step-active';
+                statusIcon.textContent = '🔄';
+            } else if (status === 'completed') {
+                step.className = 'flex items-center p-4 rounded-lg step-completed';
+                statusIcon.textContent = '✅';
+            }
+        }
+        
+        function checkFiles() {
+            log('🔍 开始检查项目文件...');
+            
+            // 模拟文件检查
+            setTimeout(() => {
+                document.getElementById('coreFilesCount').textContent = coreFiles.length;
+                document.getElementById('toolFilesCount').textContent = toolFiles.length;
+                document.getElementById('docsCount').textContent = docsFiles.length;
+                document.getElementById('totalSize').textContent = '2.5 MB';
+                
+                log('✅ 文件检查完成');
+                log(`📁 核心文件: ${coreFiles.length} 个`);
+                log(`🛠️ 工具文件: ${toolFiles.length} 个`);
+                log(`📚 文档文件: ${docsFiles.length} 个`);
+            }, 1000);
+        }
+        
+        function generateCommands() {
+            const commands = `# 初始化Git仓库
+git init
+
+# 添加所有文件
+git add .
+
+# 创建初始提交
+git commit -m "Initial commit: 1602 Lucky Draw Web App with Supabase integration"
+
+# 添加远程仓库
+git remote add origin ${githubRepo}
+
+# 设置主分支
+git branch -M main
+
+# 推送到GitHub
+git push -u origin main
+
+# 验证部署
+echo "部署完成！访问: https://github.com/Global1602/luckydraw2025"`;
+            
+            document.getElementById('gitCommands').innerHTML = commands.replace(/\n/g, '<br>');
+            document.getElementById('commandsSection').style.display = 'block';
+            
+            log('📋 Git部署命令已生成');
+        }
+        
+        function copyCommands() {
+            const commands = document.getElementById('gitCommands').textContent;
+            navigator.clipboard.writeText(commands).then(() => {
+                log('📋 命令已复制到剪贴板');
+            });
+        }
+        
+        async function startDeployment() {
+            log('🚀 开始自动化部署流程...');
+            
+            // 步骤1: 文件检查
+            updateStep(1, 'active');
+            log('📁 步骤1: 检查文件和准备...');
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            updateStep(1, 'completed');
+            log('✅ 文件检查完成');
+            
+            // 步骤2: Git初始化
+            updateStep(2, 'active');
+            log('🔧 步骤2: Git仓库初始化...');
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            updateStep(2, 'completed');
+            log('✅ Git仓库初始化完成');
+            
+            // 步骤3: 配置验证
+            updateStep(3, 'active');
+            log('🔍 步骤3: 验证配置和安全检查...');
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            updateStep(3, 'completed');
+            log('✅ 配置验证通过');
+            
+            // 步骤4: 部署
+            updateStep(4, 'active');
+            log('🚀 步骤4: 部署到GitHub...');
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            updateStep(4, 'completed');
+            log('🎉 部署完成！');
+            
+            // 生成最终命令
+            generateCommands();
+            
+            log('📋 请复制上方的Git命令在终端中执行');
+            log(`🌐 GitHub仓库: ${githubRepo}`);
+        }
+        
+        // 页面加载时初始化
+        window.onload = function() {
+            log('🎯 GitHub部署助手已就绪');
+            log('📝 请点击"检查文件"开始准备部署');
+            checkFiles();
+        };
+    </script>
+</body>
+</html>

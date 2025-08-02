@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>Admin Panel - 1602 Lucky Draw</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -175,15 +177,26 @@
     <!-- API Configuration -->
     <script src="config.js"></script>
     <script src="supabase-config.js"></script>
+    <script src="supabase-connection.js"></script>
     
-    <script type="module">
-        import { createClient } from 'https://cdn.skypack.dev/@supabase/supabase-js@2';
-
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // 浏览器兼容性检查
+        if (!window.fetch) {
+            console.error('This browser does not support fetch API. Please use a modern browser.');
+        }
+        
         // 初始化 Supabase 客户端
-        const supabase = createClient(
-            window.SUPABASE_CONFIG?.SUPABASE_URL || 'https://your-project-id.supabase.co',
-            window.SUPABASE_CONFIG?.SUPABASE_ANON_KEY || 'your-supabase-anon-key-here'
-        );
+        let supabase;
+        try {
+            supabase = window.supabase.createClient(
+                window.SUPABASE_CONFIG?.SUPABASE_URL || 'https://your-project-id.supabase.co',
+                window.SUPABASE_CONFIG?.SUPABASE_ANON_KEY || 'your-supabase-anon-key-here'
+            );
+        } catch (error) {
+            console.error('Failed to initialize Supabase client:', error);
+            supabase = null;
+        }
         
         // 数据库表名
         const TABLES = window.SUPABASE_CONFIG?.TABLES || {
@@ -287,8 +300,8 @@
             summaryModal.classList.remove('hidden');
             
             const cleanData = allUsersData.map(user => ({
-                joinDate: user.joinDate?.toDate()?.toISOString(),
-                prizesWon: user.prizesWon?.map(p => p.prize) || []
+                joinDate: user.joinDate?.toISOString ? user.joinDate.toISOString() : (user.joindate ? new Date(user.joindate).toISOString() : null),
+                prizeswon: user.prizeswon?.map(p => p.prize) || []
             }));
 
             const prompt = `
@@ -313,9 +326,9 @@
             usersTableBody.innerHTML = '';
             allUsersData = users;
             users.forEach(user => {
-                const joinDate = user.joinDate?.toDate()?.toLocaleString() || 'N/A';
-                const prizesWonText = user.prizesWon && user.prizesWon.length > 0 
-                    ? user.prizesWon.map(p => p.prize).join(', ') 
+                const joinDate = user.joinDate?.toLocaleString() || 'N/A';
+                const prizesWonText = user.prizeswon && user.prizeswon.length > 0 
+                    ? user.prizeswon.map(p => p.prize).join(', ') 
                     : '无';
                 
                 const row = document.createElement('tr');
@@ -334,51 +347,48 @@
         
         async function fetchUsers() {
             try {
-                // 初始加载用户数据
-                const { data: users, error } = await supabase
-                    .from(TABLES.USERS)
-                    .select('*')
-                    .order('joinDate', { ascending: false });
+                console.log('📊 开始获取用户数据...');
                 
-                if (error) throw error;
+                // 使用连接管理器安全查询
+                const users = await window.supabaseConnectionManager.safeQuery(TABLES.USERS, {
+                    orderBy: { column: 'joindate', ascending: false }
+                });
                 
-                // 处理日期格式并渲染表格
+                if (!users) {
+                    throw new Error('未获取到用户数据');
+                }
+                
+                // 处理日期格式 - 统一处理
                 const processedUsers = users.map(user => ({
                     ...user,
-                    joinDate: user.joinDate ? new Date(user.joinDate) : null
+                    joinDate: user.joinDate ? new Date(user.joinDate) : (user.joindate ? new Date(user.joindate) : null),
+                    drawChances: user.drawChances || user.drawchances || 1,
+                    prizeswon: user.prizeswon || []
                 }));
+                
                 renderTable(processedUsers);
+                console.log(`✅ 成功加载 ${processedUsers.length} 个用户`);
                 
-                // 设置实时订阅
-                const usersSubscription = supabase
-                    .channel('users-changes')
-                    .on('postgres_changes', {
-                        event: '*',
-                        schema: 'public',
-                        table: TABLES.USERS
-                    }, async (payload) => {
-                        console.log('Users table changed:', payload);
-                        // 重新获取所有用户数据
-                        const { data: updatedUsers, error: fetchError } = await supabase
-                            .from(TABLES.USERS)
-                            .select('*')
-                            .order('joinDate', { ascending: false });
-                        
-                        if (!fetchError) {
-                            const processedUpdatedUsers = updatedUsers.map(user => ({
-                                ...user,
-                                joinDate: user.joinDate ? new Date(user.joinDate) : null
-                            }));
-                            renderTable(processedUpdatedUsers);
-                        }
-                    })
-                    .subscribe();
-                
-                realtimeSubscriptions.push(usersSubscription);
+                // 设置安全的实时订阅
+                window.supabaseConnectionManager.subscribeToTable(TABLES.USERS, (payload) => {
+                    console.log('📡 用户数据更新:', payload);
+                    // 重新获取数据
+                    fetchUsers();
+                });
                 
             } catch (error) {
-                console.error("Supabase error in fetchUsers:", error);
-                usersTableBody.innerHTML = `<tr><td colspan="6" class="text-center text-red-500 p-4">Error: Could not load data. Check console for errors.</td></tr>`;
+                console.error('❌ 获取用户数据失败:', error);
+                usersTableBody.innerHTML = '<tr><td colspan="6" class="text-center text-red-500 p-4">加载用户数据失败: ' + error.message + '</td></tr>';
+                
+                // 尝试重新连接
+                if (error.message.includes('ERR_ABORTED') || error.message.includes('Failed to fetch')) {
+                    console.log('🔄 检测到连接问题，尝试重新连接...');
+                    setTimeout(() => {
+                        window.supabaseConnectionManager.forceReconnect().then(() => {
+                            fetchUsers();
+                        });
+                    }, 2000);
+                }
             }
         }
 
@@ -439,7 +449,7 @@
                     <div>
                         <p class="font-bold text-gray-800">${user.name}</p>
                         <p class="text-sm text-gray-500">${user.phone}</p>
-                        <p class="text-sm text-gray-500">Current Chances: ${user.drawChances}</p>
+                        <p class="text-sm text-gray-500">Current Chances: ${user.drawchances}</p>
                     </div>
                     <button data-phone="${user.phone}" class="add-chance-btn bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition-transform transform hover:scale-105">+1 Chance</button>
                 `;
@@ -480,7 +490,7 @@
                 // 首先获取当前用户数据
                 const { data: user, error: fetchError } = await supabase
                     .from(TABLES.USERS)
-                    .select('drawChances')
+                    .select('drawchances')
                     .eq('phone', phone)
                     .single();
                 
@@ -489,7 +499,7 @@
                 // 更新抽奖次数
                 const { error: updateError } = await supabase
                     .from(TABLES.USERS)
-                    .update({ drawChances: (user.drawChances || 0) + 1 })
+                    .update({ drawchances: (user.drawchances || 0) + 1 })
                     .eq('phone', phone);
                 
                 if (updateError) throw updateError;
@@ -507,9 +517,9 @@
             }
             
             const prizeNames = [
-                "Cash Voucher RM5", "Online Voucher RM10", "Free 660ml Bottle", 
-                "1602 Mug", "Spin Again!", "Online Voucher RM20", "1602 Pen", 
-                "Wine Card", "Cooler Bag", "New 330ml Can", "Thank You"
+                "Cash Voucher RM5", "Thank You", "Online Voucher RM10", "Free 660ml Bottle",
+                "1602 Mug", "Spin Again!", "Online Voucher RM20", "1602 Pen",
+                "Wine Card", "Cooler Bag", "New 330ml Can"
             ];
 
             const baseHeaders = ['Name', 'Phone', 'Email', 'Address', 'Draw Chances', 'Join Date'];
@@ -519,8 +529,8 @@
             allUsersData.forEach(user => {
                 const prizeCounts = prizeNames.reduce((acc, prize) => ({ ...acc, [prize]: 0 }), {});
 
-                if (user.prizesWon) {
-                    user.prizesWon.forEach(p => {
+                if (user.prizeswon) {
+                    user.prizeswon.forEach(p => {
                         if (p && p.prize && prizeCounts.hasOwnProperty(p.prize)) {
                             prizeCounts[p.prize]++;
                         }
@@ -534,7 +544,7 @@
                     `"${user.phone || ''}"`,
                     `"${user.email || ''}"`,
                     `"${(user.address || '').replace(/"/g, '""')}"`,
-                    user.drawChances || 0,
+                    user.drawchances || 0,
                     `"${joinDate}"`
                 ];
 
@@ -635,9 +645,9 @@
             userDetailTitle.textContent = user.name || '用户详情';
             
             let prizesHtml = '无获奖记录';
-            if (user.prizesWon && user.prizesWon.length > 0) {
+            if (user.prizeswon && user.prizeswon.length > 0) {
                 prizesHtml = '<ul class="list-disc pl-5 max-h-40 overflow-y-auto">';
-                user.prizesWon.forEach(p => {
+                user.prizeswon.forEach(p => {
                     const prizeTime = p.timestamp?.toDate()?.toLocaleString() || 'N/A';
                     prizesHtml += `<li><strong>${p.prize}</strong> - ${prizeTime}</li>`;
                 });
@@ -697,9 +707,9 @@
             const newUser = {
                 name: name,
                 phone: phone,
-                drawChances: chances,
-                joinDate: new Date().toISOString(),
-                prizesWon: []
+                drawchances: chances,
+                joindate: new Date().toISOString(),
+                prizeswon: []
             };
 
             try {

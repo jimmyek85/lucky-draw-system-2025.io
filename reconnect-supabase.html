@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔄 重新连接Supabase云服务器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .app-status {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .app-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            text-align: center;
+            border-left: 5px solid #007bff;
+            transition: all 0.3s ease;
+        }
+        
+        .app-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        .app-card.connected {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        
+        .app-card.disconnected {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        
+        .app-card.connecting {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+        }
+        
+        .app-icon {
+            font-size: 4em;
+            margin-bottom: 15px;
+        }
+        
+        .app-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2d3748;
+        }
+        
+        .app-status-text {
+            font-size: 1.1em;
+            margin-bottom: 15px;
+        }
+        
+        .app-details {
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-bottom: 15px;
+        }
+        
+        .app-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #28a745, #20c997);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545, #e74c3c);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #ffc107, #fd7e14);
+        }
+        
+        .btn-info {
+            background: linear-gradient(135deg, #17a2b8, #6f42c1);
+        }
+        
+        .control-panel {
+            background: #e3f2fd;
+            border-radius: 10px;
+            padding: 25px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .control-panel h3 {
+            color: #1976d2;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        
+        .control-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        
+        .control-buttons .btn {
+            min-width: 150px;
+            padding: 15px 25px;
+            font-size: 16px;
+        }
+        
+        .progress-section {
+            margin: 20px 0;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 25px;
+            background: #e9ecef;
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .log-container {
+            background: #2d3748;
+            color: #e2e8f0;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        
+        .log-info {
+            color: #63b3ed;
+        }
+        
+        .log-success {
+            color: #68d391;
+        }
+        
+        .log-error {
+            color: #fc8181;
+            background: rgba(252, 129, 129, 0.1);
+        }
+        
+        .log-warning {
+            color: #f6e05e;
+        }
+        
+        .connection-details {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 2px solid #e9ecef;
+        }
+        
+        .connection-details h4 {
+            color: #495057;
+            margin-bottom: 15px;
+        }
+        
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        
+        .detail-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .detail-label {
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 5px;
+        }
+        
+        .detail-value {
+            color: #6c757d;
+            font-family: monospace;
+            word-break: break-all;
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+        
+        .success-panel {
+            background: #d4edda;
+            border: 2px solid #c3e6cb;
+            border-radius: 10px;
+            padding: 25px;
+            margin: 20px 0;
+            text-align: center;
+            display: none;
+        }
+        
+        .success-panel h3 {
+            color: #155724;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+        
+        .success-panel p {
+            color: #155724;
+            margin-bottom: 20px;
+        }
+        
+        .quick-links {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔄 重新连接Supabase云服务器</h1>
+            <p>确保index.html和admin.html正常连线上线</p>
+        </div>
+        
+        <div class="content">
+            <!-- 应用状态面板 -->
+            <div class="app-status">
+                <div class="app-card disconnected" id="indexStatus">
+                    <div class="app-icon">🎯</div>
+                    <div class="app-title">主应用 (index.html)</div>
+                    <div class="app-status-text">未连接</div>
+                    <div class="app-details">1602幸运轮盘主界面</div>
+                    <div class="app-actions">
+                        <button class="btn btn-success" onclick="connectApp('index')">🔗 连接</button>
+                        <button class="btn btn-info" onclick="testApp('index')">🧪 测试</button>
+                        <a href="index.html" target="_blank" class="btn">🚀 打开</a>
+                    </div>
+                </div>
+                
+                <div class="app-card disconnected" id="adminStatus">
+                    <div class="app-icon">⚙️</div>
+                    <div class="app-title">管理面板 (admin.html)</div>
+                    <div class="app-status-text">未连接</div>
+                    <div class="app-details">用户数据管理界面</div>
+                    <div class="app-actions">
+                        <button class="btn btn-success" onclick="connectApp('admin')">🔗 连接</button>
+                        <button class="btn btn-info" onclick="testApp('admin')">🧪 测试</button>
+                        <a href="admin.html" target="_blank" class="btn">🚀 打开</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 控制面板 -->
+            <div class="control-panel">
+                <h3>🎮 连接控制中心</h3>
+                <div class="control-buttons">
+                    <button class="btn btn-success" onclick="connectAllApps()" id="connectAllBtn">
+                        🚀 全部连接
+                    </button>
+                    <button class="btn btn-warning" onclick="testAllConnections()" id="testAllBtn">
+                        🧪 全部测试
+                    </button>
+                    <button class="btn btn-danger" onclick="resetAllConnections()" id="resetAllBtn">
+                        🔄 重置连接
+                    </button>
+                    <button class="btn btn-info" onclick="openDiagnostics()">
+                        🔧 诊断工具
+                    </button>
+                </div>
+                
+                <!-- 进度条 -->
+                <div class="progress-section">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill">0%</div>
+                    </div>
+                    <p>连接进度: <span id="progressText">等待开始...</span></p>
+                </div>
+            </div>
+            
+            <!-- 连接详情 -->
+            <div class="connection-details">
+                <h4>📊 连接详情</h4>
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <div class="detail-label">Supabase URL:</div>
+                        <div class="detail-value" id="supabaseUrl">加载中...</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">API密钥状态:</div>
+                        <div class="detail-value" id="apiKeyStatus">检查中...</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">数据库连接:</div>
+                        <div class="detail-value" id="dbConnection">未测试</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">实时同步:</div>
+                        <div class="detail-value" id="realtimeStatus">未启用</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">连接延迟:</div>
+                        <div class="detail-value" id="latency">未测量</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">最后连接:</div>
+                        <div class="detail-value" id="lastConnection">从未连接</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 成功面板 -->
+            <div class="success-panel" id="successPanel">
+                <h3>🎉 连接成功！</h3>
+                <p>index.html和admin.html已成功连接到Supabase云服务器</p>
+                <div class="quick-links">
+                    <a href="index.html" target="_blank" class="btn btn-success">🎯 打开主应用</a>
+                    <a href="admin.html" target="_blank" class="btn btn-info">⚙️ 打开管理面板</a>
+                    <button class="btn" onclick="runFullTest()">🧪 运行完整测试</button>
+                </div>
+            </div>
+            
+            <!-- 日志输出 -->
+            <div class="log-container" id="logContainer">
+                <div class="log-entry log-info">[启动] Supabase重连工具已初始化</div>
+                <div class="log-entry log-info">[准备] 等待开始连接index.html和admin.html</div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="supabase-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        let supabase = null;
+        let connectionProgress = 0;
+        let appConnections = {
+            index: false,
+            admin: false
+        };
+        
+        // 日志函数
+        function addLog(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        // 更新进度
+        function updateProgress(progress, text) {
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            
+            progressFill.style.width = progress + '%';
+            progressFill.textContent = progress + '%';
+            progressText.textContent = text;
+        }
+        
+        // 更新应用状态
+        function updateAppStatus(app, status, statusText, details = '') {
+            const appCard = document.getElementById(`${app}Status`);
+            const statusElement = appCard.querySelector('.app-status-text');
+            const detailsElement = appCard.querySelector('.app-details');
+            
+            appCard.className = `app-card ${status}`;
+            statusElement.textContent = statusText;
+            
+            if (details) {
+                detailsElement.textContent = details;
+            }
+            
+            if (status === 'connecting') {
+                appCard.classList.add('pulse');
+            } else {
+                appCard.classList.remove('pulse');
+            }
+            
+            appConnections[app] = (status === 'connected');
+        }
+        
+        // 初始化Supabase
+        function initializeSupabase() {
+            try {
+                if (!window.SUPABASE_CONFIG) {
+                    throw new Error('Supabase配置未找到');
+                }
+                
+                const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.SUPABASE_CONFIG;
+                
+                if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+                    throw new Error('Supabase配置不完整');
+                }
+                
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+                    auth: {
+                        autoRefreshToken: true,
+                        persistSession: true
+                    },
+                    realtime: {
+                        params: {
+                            eventsPerSecond: 10
+                        }
+                    }
+                });
+                
+                // 更新连接详情
+                document.getElementById('supabaseUrl').textContent = SUPABASE_URL;
+                document.getElementById('apiKeyStatus').textContent = '已配置';
+                
+                addLog('✅ Supabase客户端初始化成功', 'success');
+                return true;
+            } catch (error) {
+                addLog(`❌ Supabase初始化失败: ${error.message}`, 'error');
+                document.getElementById('apiKeyStatus').textContent = '配置错误';
+                return false;
+            }
+        }
+        
+        // 连接单个应用
+        async function connectApp(app) {
+            const appName = app === 'index' ? '主应用' : '管理面板';
+            addLog(`🔗 开始连接${appName}...`, 'info');
+            
+            updateAppStatus(app, 'connecting', '连接中...', '正在建立Supabase连接');
+            
+            try {
+                if (!supabase) {
+                    if (!initializeSupabase()) {
+                        throw new Error('Supabase初始化失败');
+                    }
+                }
+                
+                // 测试数据库连接
+                const startTime = Date.now();
+                const { data, error } = await supabase.from('users').select('count', { count: 'exact', head: true });
+                const latency = Date.now() - startTime;
+                
+                if (error) {
+                    throw error;
+                }
+                
+                // 更新连接详情
+                document.getElementById('dbConnection').textContent = '已连接';
+                document.getElementById('latency').textContent = `${latency}ms`;
+                document.getElementById('lastConnection').textContent = new Date().toLocaleTimeString();
+                
+                // 测试实时订阅
+                const subscription = supabase
+                    .channel(`${app}-test-channel`)
+                    .on('postgres_changes', {
+                        event: '*',
+                        schema: 'public',
+                        table: 'users'
+                    }, () => {})
+                    .subscribe((status) => {
+                        if (status === 'SUBSCRIBED') {
+                            document.getElementById('realtimeStatus').textContent = '已启用';
+                            addLog(`✅ ${appName}实时同步已启用`, 'success');
+                        }
+                        subscription.unsubscribe();
+                    });
+                
+                updateAppStatus(app, 'connected', '已连接', `Supabase连接正常，延迟${latency}ms`);
+                addLog(`🎉 ${appName}连接成功！`, 'success');
+                
+                return true;
+            } catch (error) {
+                updateAppStatus(app, 'disconnected', '连接失败', `错误: ${error.message}`);
+                addLog(`❌ ${appName}连接失败: ${error.message}`, 'error');
+                return false;
+            }
+        }
+        
+        // 测试单个应用
+        async function testApp(app) {
+            const appName = app === 'index' ? '主应用' : '管理面板';
+            addLog(`🧪 测试${appName}功能...`, 'info');
+            
+            try {
+                if (!supabase) {
+                    throw new Error('请先建立连接');
+                }
+                
+                // 测试数据读取
+                const { data: settings, error: settingsError } = await supabase
+                    .from('settings')
+                    .select('*')
+                    .limit(1);
+                
+                if (settingsError) throw settingsError;
+                
+                // 测试用户数据（如果是管理面板）
+                if (app === 'admin') {
+                    const { data: users, error: usersError } = await supabase
+                        .from('users')
+                        .select('count', { count: 'exact', head: true });
+                    
+                    if (usersError) throw usersError;
+                    
+                    addLog(`📊 管理面板数据: 用户总数 ${users.count || 0}`, 'info');
+                }
+                
+                // 测试知识库数据（如果是主应用）
+                if (app === 'index') {
+                    const { data: knowledge, error: knowledgeError } = await supabase
+                        .from('knowledge')
+                        .select('*')
+                        .limit(1);
+                    
+                    if (knowledgeError) throw knowledgeError;
+                    
+                    addLog(`📚 主应用数据: 知识库正常`, 'info');
+                }
+                
+                addLog(`✅ ${appName}功能测试通过`, 'success');
+                return true;
+            } catch (error) {
+                addLog(`❌ ${appName}测试失败: ${error.message}`, 'error');
+                return false;
+            }
+        }
+        
+        // 连接所有应用
+        async function connectAllApps() {
+            addLog('🚀 开始连接所有应用...', 'info');
+            
+            const connectAllBtn = document.getElementById('connectAllBtn');
+            connectAllBtn.disabled = true;
+            
+            try {
+                updateProgress(10, '初始化Supabase客户端...');
+                
+                if (!initializeSupabase()) {
+                    throw new Error('Supabase初始化失败');
+                }
+                
+                updateProgress(30, '连接主应用...');
+                const indexResult = await connectApp('index');
+                
+                updateProgress(60, '连接管理面板...');
+                const adminResult = await connectApp('admin');
+                
+                updateProgress(90, '验证连接状态...');
+                
+                if (indexResult && adminResult) {
+                    updateProgress(100, '所有应用连接成功！');
+                    addLog('🎉 所有应用已成功连接到Supabase云服务器！', 'success');
+                    
+                    // 显示成功面板
+                    document.getElementById('successPanel').style.display = 'block';
+                } else {
+                    updateProgress(100, '部分应用连接失败');
+                    addLog('⚠️ 部分应用连接失败，请检查错误信息', 'warning');
+                }
+                
+            } catch (error) {
+                updateProgress(100, '连接失败');
+                addLog(`❌ 连接过程失败: ${error.message}`, 'error');
+            } finally {
+                connectAllBtn.disabled = false;
+            }
+        }
+        
+        // 测试所有连接
+        async function testAllConnections() {
+            addLog('🧪 开始测试所有连接...', 'info');
+            
+            const testAllBtn = document.getElementById('testAllBtn');
+            testAllBtn.disabled = true;
+            
+            try {
+                updateProgress(20, '测试主应用...');
+                const indexTest = await testApp('index');
+                
+                updateProgress(60, '测试管理面板...');
+                const adminTest = await testApp('admin');
+                
+                updateProgress(100, '测试完成');
+                
+                if (indexTest && adminTest) {
+                    addLog('✅ 所有应用功能测试通过', 'success');
+                } else {
+                    addLog('⚠️ 部分应用测试失败', 'warning');
+                }
+                
+            } catch (error) {
+                addLog(`❌ 测试过程失败: ${error.message}`, 'error');
+            } finally {
+                testAllBtn.disabled = false;
+            }
+        }
+        
+        // 重置所有连接
+        async function resetAllConnections() {
+            addLog('🔄 重置所有连接...', 'info');
+            
+            // 重置状态
+            updateAppStatus('index', 'disconnected', '未连接', '1602幸运轮盘主界面');
+            updateAppStatus('admin', 'disconnected', '未连接', '用户数据管理界面');
+            
+            // 重置连接详情
+            document.getElementById('dbConnection').textContent = '未测试';
+            document.getElementById('realtimeStatus').textContent = '未启用';
+            document.getElementById('latency').textContent = '未测量';
+            document.getElementById('lastConnection').textContent = '从未连接';
+            
+            // 重置进度
+            updateProgress(0, '等待开始...');
+            
+            // 隐藏成功面板
+            document.getElementById('successPanel').style.display = 'none';
+            
+            // 重新初始化
+            supabase = null;
+            appConnections = { index: false, admin: false };
+            
+            addLog('✅ 连接已重置', 'success');
+        }
+        
+        // 运行完整测试
+        async function runFullTest() {
+            addLog('🔬 运行完整功能测试...', 'info');
+            
+            try {
+                // 测试用户注册功能
+                const testUser = {
+                    name: '连接测试用户_' + Date.now(),
+                    phone: '+60' + Math.floor(Math.random() * 1000000000),
+                    email: `test${Date.now()}@reconnect.com`,
+                    address: '重连测试地址',
+                    status: 'active'
+                };
+                
+                const { data, error } = await supabase
+                    .from('users')
+                    .insert([testUser])
+                    .select();
+                
+                if (error) throw error;
+                
+                // 清理测试数据
+                await supabase.from('users').delete().eq('id', data[0].id);
+                
+                addLog('✅ 完整功能测试通过 - 数据读写正常', 'success');
+                
+            } catch (error) {
+                addLog(`❌ 完整测试失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // 打开诊断工具
+        function openDiagnostics() {
+            window.open('fix-supabase-error.html', '_blank');
+        }
+        
+        // 页面加载时初始化
+        window.addEventListener('load', function() {
+            addLog('🔧 Supabase重连工具已加载', 'info');
+            
+            // 自动加载配置信息
+            if (window.SUPABASE_CONFIG) {
+                document.getElementById('supabaseUrl').textContent = window.SUPABASE_CONFIG.SUPABASE_URL || '未配置';
+                addLog('📋 已加载Supabase配置', 'info');
+            } else {
+                addLog('⚠️ 未找到Supabase配置文件', 'warning');
+            }
+            
+            addLog('💡 点击"全部连接"开始重新连接应用', 'info');
+        });
+        
+        // 定期检查连接状态
+        setInterval(async function() {
+            if (supabase && (appConnections.index || appConnections.admin)) {
+                try {
+                    const startTime = Date.now();
+                    await supabase.from('users').select('count', { count: 'exact', head: true });
+                    const latency = Date.now() - startTime;
+                    document.getElementById('latency').textContent = `${latency}ms`;
+                } catch (error) {
+                    addLog('⚠️ 连接检查失败，可能需要重新连接', 'warning');
+                }
+            }
+        }, 30000); // 每30秒检查一次
+    </script>
+</body>
+</html>
