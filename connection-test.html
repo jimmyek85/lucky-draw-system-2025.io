@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase 连接测试 - 1602 Lucky Draw</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .status-success { background-color: #10b981; }
+        .status-error { background-color: #ef4444; }
+        .status-warning { background-color: #f59e0b; }
+        .status-loading { 
+            background-color: #6b7280; 
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .test-card {
+            transition: all 0.3s ease;
+        }
+        .test-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">🔗 Supabase 连接测试</h1>
+                <p class="text-gray-600">验证 1602 Lucky Draw 系统与 Supabase 云服务器的连接状态</p>
+            </div>
+
+            <!-- Overall Status -->
+            <div id="overall-status" class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <span id="overall-indicator" class="status-indicator status-loading"></span>
+                        <h2 class="text-xl font-semibold text-gray-800">系统状态</h2>
+                    </div>
+                    <button id="refresh-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition">
+                        🔄 刷新测试
+                    </button>
+                </div>
+                <p id="overall-message" class="text-gray-600 mt-2">正在检测连接状态...</p>
+            </div>
+
+            <!-- Test Results Grid -->
+            <div class="grid md:grid-cols-2 gap-6 mb-6">
+                <!-- Configuration Test -->
+                <div class="test-card bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center mb-4">
+                        <span id="config-indicator" class="status-indicator status-loading"></span>
+                        <h3 class="text-lg font-semibold text-gray-800">配置检查</h3>
+                    </div>
+                    <div id="config-details" class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span>Supabase URL:</span>
+                            <span id="config-url" class="text-gray-600">检测中...</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>API Key:</span>
+                            <span id="config-key" class="text-gray-600">检测中...</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>表配置:</span>
+                            <span id="config-tables" class="text-gray-600">检测中...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Connection Test -->
+                <div class="test-card bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center mb-4">
+                        <span id="connection-indicator" class="status-indicator status-loading"></span>
+                        <h3 class="text-lg font-semibold text-gray-800">连接测试</h3>
+                    </div>
+                    <div id="connection-details" class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span>网络连接:</span>
+                            <span id="network-status" class="text-gray-600">检测中...</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>数据库连接:</span>
+                            <span id="db-status" class="text-gray-600">检测中...</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>响应时间:</span>
+                            <span id="response-time" class="text-gray-600">检测中...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Database Tables Test -->
+                <div class="test-card bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center mb-4">
+                        <span id="tables-indicator" class="status-indicator status-loading"></span>
+                        <h3 class="text-lg font-semibold text-gray-800">数据表检查</h3>
+                    </div>
+                    <div id="tables-details" class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span>users 表:</span>
+                            <span id="users-table-status" class="text-gray-600">检测中...</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>settings 表:</span>
+                            <span id="settings-table-status" class="text-gray-600">检测中...</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>knowledge 表:</span>
+                            <span id="knowledge-table-status" class="text-gray-600">检测中...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Consistency Test -->
+                <div class="test-card bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center mb-4">
+                        <span id="data-indicator" class="status-indicator status-loading"></span>
+                        <h3 class="text-lg font-semibold text-gray-800">数据一致性</h3>
+                    </div>
+                    <div id="data-details" class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span>用户数据:</span>
+                            <span id="user-data-count" class="text-gray-600">检测中...</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>设置同步:</span>
+                            <span id="settings-sync" class="text-gray-600">检测中...</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>知识库:</span>
+                            <span id="knowledge-sync" class="text-gray-600">检测中...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Log -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">📋 详细日志</h3>
+                <div id="test-log" class="bg-gray-50 rounded-md p-4 h-64 overflow-y-auto text-sm font-mono">
+                    <div class="text-gray-600">等待测试开始...</div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="mt-6 flex flex-wrap gap-4 justify-center">
+                <button id="test-insert-btn" class="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition">
+                    🧪 测试数据插入
+                </button>
+                <button id="test-realtime-btn" class="bg-purple-600 text-white px-6 py-2 rounded-md hover:bg-purple-700 transition">
+                    ⚡ 测试实时同步
+                </button>
+                <button id="clear-log-btn" class="bg-gray-600 text-white px-6 py-2 rounded-md hover:bg-gray-700 transition">
+                    🗑️ 清空日志
+                </button>
+                <a href="index.html" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition inline-block">
+                    🎯 返回抽奖页面
+                </a>
+                <a href="admin.html" class="bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 transition inline-block">
+                    ⚙️ 管理后台
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="config.js"></script>
+    <script src="supabase-config.js"></script>
+    <script src="supabase-connection.js"></script>
+    <script src="verify-connections.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        class ConnectionTester {
+            constructor() {
+                this.connectionManager = null;
+                this.testResults = {};
+                this.logContainer = document.getElementById('test-log');
+                this.startTime = null;
+                
+                this.init();
+            }
+
+            async init() {
+                this.log('🚀 初始化连接测试器...');
+                
+                // 绑定事件
+                document.getElementById('refresh-btn').addEventListener('click', () => this.runAllTests());
+                document.getElementById('test-insert-btn').addEventListener('click', () => this.testDataInsert());
+                document.getElementById('test-realtime-btn').addEventListener('click', () => this.testRealtime());
+                document.getElementById('clear-log-btn').addEventListener('click', () => this.clearLog());
+                
+                // 开始测试
+                await this.runAllTests();
+            }
+
+            log(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = document.createElement('div');
+                logEntry.className = `mb-1 ${type === 'error' ? 'text-red-600' : type === 'success' ? 'text-green-600' : 'text-gray-700'}`;
+                logEntry.textContent = `[${timestamp}] ${message}`;
+                this.logContainer.appendChild(logEntry);
+                this.logContainer.scrollTop = this.logContainer.scrollHeight;
+                console.log(message);
+            }
+
+            clearLog() {
+                this.logContainer.innerHTML = '<div class="text-gray-600">日志已清空</div>';
+            }
+
+            updateStatus(elementId, status, message = '') {
+                const indicator = document.getElementById(`${elementId}-indicator`);
+                const statusClasses = ['status-loading', 'status-success', 'status-error', 'status-warning'];
+                
+                indicator.classList.remove(...statusClasses);
+                indicator.classList.add(`status-${status}`);
+                
+                if (message) {
+                    const messageElement = document.getElementById(`${elementId}-message`);
+                    if (messageElement) {
+                        messageElement.textContent = message;
+                    }
+                }
+            }
+
+            async runAllTests() {
+                this.startTime = Date.now();
+                this.log('🔄 开始全面连接测试...');
+                
+                // 重置状态
+                this.updateStatus('overall', 'loading');
+                this.updateStatus('config', 'loading');
+                this.updateStatus('connection', 'loading');
+                this.updateStatus('tables', 'loading');
+                this.updateStatus('data', 'loading');
+
+                try {
+                    // 1. 配置检查
+                    await this.testConfiguration();
+                    
+                    // 2. 连接测试
+                    await this.testConnection();
+                    
+                    // 3. 数据表检查
+                    await this.testTables();
+                    
+                    // 4. 数据一致性检查
+                    await this.testDataConsistency();
+                    
+                    // 更新总体状态
+                    this.updateOverallStatus();
+                    
+                } catch (error) {
+                    this.log(`❌ 测试过程中发生错误: ${error.message}`, 'error');
+                    this.updateStatus('overall', 'error', '测试失败');
+                }
+            }
+
+            async testConfiguration() {
+                this.log('📋 检查配置文件...');
+                
+                try {
+                    // 检查 Supabase 配置
+                    const config = window.SUPABASE_CONFIG;
+                    if (!config) {
+                        throw new Error('SUPABASE_CONFIG 未找到');
+                    }
+
+                    // 更新配置显示
+                    document.getElementById('config-url').textContent = 
+                        config.SUPABASE_URL ? '✅ 已配置' : '❌ 未配置';
+                    document.getElementById('config-key').textContent = 
+                        config.SUPABASE_ANON_KEY ? '✅ 已配置' : '❌ 未配置';
+                    document.getElementById('config-tables').textContent = 
+                        config.TABLES ? '✅ 已配置' : '❌ 未配置';
+
+                    if (window.isSupabaseConfigured && window.isSupabaseConfigured()) {
+                        this.updateStatus('config', 'success');
+                        this.log('✅ 配置检查通过');
+                        this.testResults.config = true;
+                    } else {
+                        this.updateStatus('config', 'error');
+                        this.log('❌ 配置检查失败', 'error');
+                        this.testResults.config = false;
+                    }
+                } catch (error) {
+                    this.updateStatus('config', 'error');
+                    this.log(`❌ 配置检查错误: ${error.message}`, 'error');
+                    this.testResults.config = false;
+                }
+            }
+
+            async testConnection() {
+                this.log('🔗 测试 Supabase 连接...');
+                
+                try {
+                    const startTime = Date.now();
+                    
+                    // 初始化连接管理器
+                    this.connectionManager = new SupabaseConnectionManager();
+                    const connected = await this.connectionManager.initialize();
+                    
+                    const responseTime = Date.now() - startTime;
+                    
+                    if (connected) {
+                        document.getElementById('network-status').textContent = '✅ 正常';
+                        document.getElementById('db-status').textContent = '✅ 已连接';
+                        document.getElementById('response-time').textContent = `${responseTime}ms`;
+                        
+                        this.updateStatus('connection', 'success');
+                        this.log(`✅ 连接成功 (${responseTime}ms)`);
+                        this.testResults.connection = true;
+                    } else {
+                        throw new Error('连接失败');
+                    }
+                } catch (error) {
+                    document.getElementById('network-status').textContent = '❌ 异常';
+                    document.getElementById('db-status').textContent = '❌ 断开';
+                    document.getElementById('response-time').textContent = '超时';
+                    
+                    this.updateStatus('connection', 'error');
+                    this.log(`❌ 连接失败: ${error.message}`, 'error');
+                    this.testResults.connection = false;
+                }
+            }
+
+            async testTables() {
+                this.log('📊 检查数据表结构...');
+                
+                if (!this.connectionManager || !this.connectionManager.isConnected) {
+                    this.updateStatus('tables', 'error');
+                    this.log('❌ 无法检查数据表：连接未建立', 'error');
+                    return;
+                }
+
+                try {
+                    const tables = ['users', 'settings', 'knowledge'];
+                    const tableResults = {};
+                    
+                    for (const table of tables) {
+                        try {
+                            await this.connectionManager.safeQuery(table, { limit: 1 });
+                            tableResults[table] = true;
+                            document.getElementById(`${table}-table-status`).textContent = '✅ 正常';
+                            this.log(`✅ ${table} 表检查通过`);
+                        } catch (error) {
+                            tableResults[table] = false;
+                            document.getElementById(`${table}-table-status`).textContent = '❌ 异常';
+                            this.log(`❌ ${table} 表检查失败: ${error.message}`, 'error');
+                        }
+                    }
+                    
+                    const allTablesOk = Object.values(tableResults).every(result => result);
+                    this.updateStatus('tables', allTablesOk ? 'success' : 'warning');
+                    this.testResults.tables = allTablesOk;
+                    
+                } catch (error) {
+                    this.updateStatus('tables', 'error');
+                    this.log(`❌ 数据表检查错误: ${error.message}`, 'error');
+                    this.testResults.tables = false;
+                }
+            }
+
+            async testDataConsistency() {
+                this.log('🔄 检查数据一致性...');
+                
+                if (!this.connectionManager || !this.connectionManager.isConnected) {
+                    this.updateStatus('data', 'error');
+                    this.log('❌ 无法检查数据一致性：连接未建立', 'error');
+                    return;
+                }
+
+                try {
+                    // 检查用户数据
+                    const users = await this.connectionManager.safeQuery('users');
+                    document.getElementById('user-data-count').textContent = `${users.length} 条记录`;
+                    
+                    // 检查设置数据
+                    const settings = await this.connectionManager.safeQuery('settings');
+                    document.getElementById('settings-sync').textContent = settings.length > 0 ? '✅ 已同步' : '⚠️ 无数据';
+                    
+                    // 检查知识库数据
+                    const knowledge = await this.connectionManager.safeQuery('knowledge');
+                    document.getElementById('knowledge-sync').textContent = knowledge.length > 0 ? '✅ 已同步' : '⚠️ 无数据';
+                    
+                    this.updateStatus('data', 'success');
+                    this.log('✅ 数据一致性检查完成');
+                    this.testResults.data = true;
+                    
+                } catch (error) {
+                    this.updateStatus('data', 'error');
+                    this.log(`❌ 数据一致性检查失败: ${error.message}`, 'error');
+                    this.testResults.data = false;
+                }
+            }
+
+            async testDataInsert() {
+                this.log('🧪 测试数据插入功能...');
+                
+                if (!this.connectionManager || !this.connectionManager.isConnected) {
+                    this.log('❌ 无法测试插入：连接未建立', 'error');
+                    return;
+                }
+
+                try {
+                    const testUser = {
+                        name: `测试用户_${Date.now()}`,
+                        phone: `+86${Math.floor(Math.random() * 10000000000)}`,
+                        email: `test_${Date.now()}@example.com`,
+                        chances: 1,
+                        created_at: new Date().toISOString()
+                    };
+                    
+                    const result = await this.connectionManager.safeInsert('users', testUser);
+                    
+                    if (result && result.length > 0) {
+                        this.log(`✅ 测试数据插入成功，ID: ${result[0].id}`);
+                        
+                        // 清理测试数据
+                        await this.connectionManager.supabase
+                            .from('users')
+                            .delete()
+                            .eq('id', result[0].id);
+                        
+                        this.log('🗑️ 测试数据已清理');
+                    }
+                } catch (error) {
+                    this.log(`❌ 数据插入测试失败: ${error.message}`, 'error');
+                }
+            }
+
+            async testRealtime() {
+                this.log('⚡ 测试实时同步功能...');
+                
+                if (!this.connectionManager || !this.connectionManager.isConnected) {
+                    this.log('❌ 无法测试实时同步：连接未建立', 'error');
+                    return;
+                }
+
+                try {
+                    // 这里可以添加实时同步测试逻辑
+                    this.log('ℹ️ 实时同步测试功能开发中...');
+                } catch (error) {
+                    this.log(`❌ 实时同步测试失败: ${error.message}`, 'error');
+                }
+            }
+
+            updateOverallStatus() {
+                const totalTests = Object.keys(this.testResults).length;
+                const passedTests = Object.values(this.testResults).filter(result => result).length;
+                const totalTime = Date.now() - this.startTime;
+                
+                if (passedTests === totalTests) {
+                    this.updateStatus('overall', 'success', `所有测试通过 (${totalTime}ms)`);
+                    this.log(`🎉 所有测试完成！通过率: ${passedTests}/${totalTests} (${totalTime}ms)`, 'success');
+                } else if (passedTests > 0) {
+                    this.updateStatus('overall', 'warning', `部分测试通过 (${passedTests}/${totalTests})`);
+                    this.log(`⚠️ 部分测试通过: ${passedTests}/${totalTests}`, 'warning');
+                } else {
+                    this.updateStatus('overall', 'error', '所有测试失败');
+                    this.log('❌ 所有测试失败', 'error');
+                }
+            }
+        }
+
+        // 页面加载完成后启动测试
+        document.addEventListener('DOMContentLoaded', () => {
+            new ConnectionTester();
+        });
+
+        // 监听统一验证完成事件
+        window.addEventListener('connectionVerified', function(event) {
+            const report = event.detail;
+            console.log('📊 收到统一验证报告:', report);
+            
+            // 更新页面显示
+            if (report.summary.successRate === '100.0%') {
+                updateStatus('✅ 所有连接验证通过！系统运行正常', 'success');
+            } else {
+                updateStatus(`⚠️ 验证完成，成功率: ${report.summary.successRate}`, 'warning');
+            }
+            
+            // 显示详细报告
+            const reportDiv = document.getElementById('test-results');
+            if (reportDiv) {
+                reportDiv.innerHTML += `
+                    <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+                        <h3 class="font-bold text-lg mb-2">📊 统一验证报告</h3>
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div>总检查项: ${report.summary.total}</div>
+                            <div>成功率: ${report.summary.successRate}</div>
+                            <div class="text-green-600">通过: ${report.summary.passed}</div>
+                            <div class="text-red-600">失败: ${report.summary.failed}</div>
+                        </div>
+                        ${report.recommendations.length > 0 ? `
+                            <div class="mt-4">
+                                <h4 class="font-semibold mb-2">💡 建议:</h4>
+                                <ul class="list-disc list-inside space-y-1">
+                                    ${report.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>
