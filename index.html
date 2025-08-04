@@ -579,7 +579,7 @@
         }
 
         function spin() {
-            if (isSpinning || currentUser.drawchances <= 0) return;
+            if (isSpinning || currentUser.remaining_chances <= 0) return;
             isSpinning = true;
             spinBtn.disabled = true;
             document.getElementById('wheel-wrapper').classList.add('spinning-neon');
@@ -609,7 +609,7 @@
         }
 
         async function handlePrize(prize) {
-            let newChances = currentUser.drawchances - 1;
+            let newChances = currentUser.remaining_chances - 1;
 
             const prizeText = langData[currentLang][prize.text] || prize.text;
 
@@ -638,7 +638,7 @@
             }
 
             // 更新用户数据
-            currentUser.drawchances = newChances;
+            currentUser.remaining_chances = newChances;
             currentUser.prizeswon = updatedPrizes;
 
             if (isOfflineMode) {
@@ -652,7 +652,7 @@
                     const { error } = await supabase
                         .from(TABLES.USERS)
                         .update({
-                            drawchances: newChances,
+                            remaining_chances: newChances,
                             prizeswon: updatedPrizes
                         })
                         .eq('phone', currentUser.phone);
@@ -704,8 +704,8 @@
         function setupUserSession(userData) {
             currentUser = userData;
             userNameDisplay.textContent = currentUser.name;
-            updateChancesText(userData.drawchances);
-            spinBtn.disabled = userData.drawchances <= 0;
+            updateChancesText(userData.remaining_chances || userData.drawchances || 1);
+            spinBtn.disabled = (userData.remaining_chances || userData.drawchances || 1) <= 0;
 
             landingPageContainer.classList.add('hidden');
             registerPage.classList.add('hidden');
@@ -730,8 +730,8 @@
                     }, (payload) => {
                         if (payload.new) {
                             currentUser = payload.new;
-                            updateChancesText(currentUser.drawchances);
-                            spinBtn.disabled = currentUser.drawchances <= 0 || isSpinning;
+                            updateChancesText(currentUser.remaining_chances || currentUser.drawchances || 1);
+                            spinBtn.disabled = (currentUser.remaining_chances || currentUser.drawchances || 1) <= 0 || isSpinning;
                         }
                     })
                     .subscribe();
@@ -790,12 +790,12 @@
                     }
                 } else {
                     // 创建新用户
-                    const newUser = {
+                    const userData = {
                         name,
                         phone,
                         email,
                         address,
-                        drawchances: 1,
+                        remaining_chances: 1,
                         joindate: new Date().toISOString(),
                         prizeswon: []
                     };
@@ -835,7 +835,7 @@
                     phone,
                     email,
                     address,
-                    drawchances: 1,
+                    remaining_chances: 1,
                     joindate: new Date().toISOString(),
                     prizeswon: []
                 };

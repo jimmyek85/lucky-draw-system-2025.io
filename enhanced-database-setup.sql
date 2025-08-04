@@ -6,7 +6,14 @@ ALTER TABLE users
 ADD COLUMN IF NOT EXISTS prizes_won JSONB DEFAULT '[]'::jsonb,
 ADD COLUMN IF NOT EXISTS extra_chances INTEGER DEFAULT 0,
 ADD COLUMN IF NOT EXISTS total_spins INTEGER DEFAULT 0,
-ADD COLUMN IF NOT EXISTS last_spin_date TIMESTAMP WITH TIME ZONE;
+ADD COLUMN IF NOT EXISTS last_spin_date TIMESTAMP WITH TIME ZONE,
+ADD COLUMN IF NOT EXISTS remaining_chances INTEGER DEFAULT 1,
+ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true,
+ADD COLUMN IF NOT EXISTS draw_count INTEGER DEFAULT 0;
+
+-- 同步现有的 drawchances 字段到 remaining_chances
+UPDATE users SET remaining_chances = drawchances WHERE remaining_chances IS NULL;
+UPDATE users SET draw_count = 0 WHERE draw_count IS NULL;
 
 -- 2. 创建公告栏表 (announcements)
 CREATE TABLE IF NOT EXISTS announcements (

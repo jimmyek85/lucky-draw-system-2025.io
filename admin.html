@@ -248,9 +248,47 @@
             </div>
         </div>
 
+        <!-- 内容管理 -->
+        <div class="admin-card bg-gray-800 p-6 rounded-lg mb-8">
+            <h3 class="text-xl font-bold text-blue-400 mb-4">📝 内容管理</h3>
+            
+            <!-- 领奖T&C管理 -->
+            <div class="mb-6 p-4 bg-gray-700 rounded-lg">
+                <h4 class="text-lg font-semibold text-white mb-3">🏆 领奖条款与条件 (T&C)</h4>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">领奖条款内容</label>
+                        <textarea id="terms-content" rows="6" placeholder="输入领奖条款与条件..." 
+                                  class="w-full px-4 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"></textarea>
+                    </div>
+                    <button onclick="updateTermsConditions()" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+                        💾 保存领奖条款
+                    </button>
+                </div>
+            </div>
+
+            <!-- 优惠套餐管理 -->
+            <div class="mb-6 p-4 bg-gray-700 rounded-lg">
+                <h4 class="text-lg font-semibold text-white mb-3">🎉 优惠套餐内容</h4>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">优惠套餐详情</label>
+                        <textarea id="promotion-content" rows="8" 
+                                  class="w-full px-4 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-orange-500">🎉🎉🎉特价优惠🎉🎉🎉
+（周一至周四） monday to thursday：
+消费满55令吉以上(以一张单据为准)可以8令吉优惠价购得660ml瓶装精酿啤酒 (只限3瓶)
+Spend RM55 or more (based on one receipt), you can purchase 660ml bottles of craft beer at a discounted price of RM8 (limited to 3 bottles)</textarea>
+                    </div>
+                    <button onclick="updatePromotionContent()" class="px-6 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors">
+                        💾 保存优惠套餐
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- 产品知识库管理 -->
         <div class="admin-card bg-gray-800 p-6 rounded-lg mb-8">
-            <h3 class="text-xl font-bold text-purple-400 mb-4">📚 产品知识库管理</h3>
+            <h3 class="text-xl font-bold text-purple-400 mb-4">📚 AI啤酒推荐知识库</h3>
             
             <!-- 添加新知识 -->
             <div class="mb-6 p-4 bg-gray-700 rounded-lg">
@@ -261,20 +299,7 @@
                         <input type="text" id="knowledge-title" placeholder="输入产品名称..." 
                                class="w-full px-4 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500">
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">产品分类</label>
-                        <select id="knowledge-category" 
-                                class="w-full px-4 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white focus:outline-none focus:border-purple-500">
-                            <option value="">选择分类</option>
-                            <option value="electronics">电子产品</option>
-                            <option value="clothing">服装</option>
-                            <option value="food">食品</option>
-                            <option value="beauty">美容护肤</option>
-                            <option value="home">家居用品</option>
-                            <option value="sports">运动健身</option>
-                            <option value="other">其他</option>
-                        </select>
-                    </div>
+                    <input type="hidden" id="knowledge-category" value="beer">
                     <div>
                         <label class="block text-sm font-medium text-gray-300 mb-2">产品描述</label>
                         <textarea id="knowledge-description" rows="4" placeholder="输入详细的产品描述..." 
@@ -285,11 +310,7 @@
                         <textarea id="knowledge-features" rows="3" placeholder="输入产品特点（每行一个特点）..." 
                                   class="w-full px-4 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"></textarea>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">价格信息</label>
-                        <input type="text" id="knowledge-price" placeholder="例如：RM 59.90" 
-                               class="w-full px-4 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500">
-                    </div>
+                    <input type="hidden" id="knowledge-price" value="0">
                     <div>
                         <label class="block text-sm font-medium text-gray-300 mb-2">上传产品图片</label>
                         <input type="file" id="knowledge-images" accept="image/*" multiple 
@@ -493,6 +514,9 @@
                 
                 // 加载知识库
                 await loadKnowledge();
+                
+                // 加载内容管理数据
+                await loadContentManagement();
                 
                 addLog('📊 仪表板数据加载完成', 'success');
             } catch (error) {
@@ -1378,7 +1402,7 @@ Thank You 18%`;
 
                 // 保存知识到数据库
                 const { error } = await supabase
-                    .from('knowledge_base')
+                    .from('knowledge')
                     .insert({
                         title,
                         category,
@@ -1417,7 +1441,7 @@ Thank You 18%`;
         async function loadKnowledge() {
             try {
                 const { data: knowledge, error } = await supabase
-                    .from('knowledge_base')
+                    .from('knowledge')
                     .select('*')
                     .order('created_at', { ascending: false });
 
@@ -1501,7 +1525,7 @@ Thank You 18%`;
 
             try {
                 const { error } = await supabase
-                    .from('knowledge_base')
+                    .from('knowledge')
                     .delete()
                     .eq('id', id);
 
@@ -1511,6 +1535,92 @@ Thank You 18%`;
                 await loadKnowledge();
             } catch (error) {
                 addLog(`❌ 删除产品知识失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 更新领奖条款
+        async function updateTermsConditions() {
+            const content = document.getElementById('terms-content').value.trim();
+            
+            if (!content) {
+                alert('请输入领奖条款内容');
+                return;
+            }
+
+            try {
+                const { error } = await supabase
+                    .from('settings')
+                    .upsert({
+                        key: 'terms_conditions',
+                        value: content,
+                        updated_at: new Date().toISOString()
+                    });
+
+                if (error) throw error;
+
+                addLog('🏆 领奖条款已更新', 'success');
+                alert('领奖条款保存成功！');
+            } catch (error) {
+                addLog(`❌ 更新领奖条款失败: ${error.message}`, 'error');
+                alert(`保存失败: ${error.message}`);
+            }
+        }
+
+        // 更新优惠套餐内容
+        async function updatePromotionContent() {
+            const content = document.getElementById('promotion-content').value.trim();
+            
+            if (!content) {
+                alert('请输入优惠套餐内容');
+                return;
+            }
+
+            try {
+                const { error } = await supabase
+                    .from('settings')
+                    .upsert({
+                        key: 'promotion_content',
+                        value: content,
+                        updated_at: new Date().toISOString()
+                    });
+
+                if (error) throw error;
+
+                addLog('🎉 优惠套餐内容已更新', 'success');
+                alert('优惠套餐内容保存成功！');
+            } catch (error) {
+                addLog(`❌ 更新优惠套餐内容失败: ${error.message}`, 'error');
+                alert(`保存失败: ${error.message}`);
+            }
+        }
+
+        // 加载内容管理数据
+        async function loadContentManagement() {
+            try {
+                // 加载领奖条款
+                const { data: termsData, error: termsError } = await supabase
+                    .from('settings')
+                    .select('value')
+                    .eq('key', 'terms_conditions')
+                    .single();
+
+                if (!termsError && termsData) {
+                    document.getElementById('terms-content').value = termsData.value;
+                }
+
+                // 加载优惠套餐内容
+                const { data: promotionData, error: promotionError } = await supabase
+                    .from('settings')
+                    .select('value')
+                    .eq('key', 'promotion_content')
+                    .single();
+
+                if (!promotionError && promotionData) {
+                    document.getElementById('promotion-content').value = promotionData.value;
+                }
+
+            } catch (error) {
+                addLog(`❌ 加载内容管理数据失败: ${error.message}`, 'error');
             }
         }
 

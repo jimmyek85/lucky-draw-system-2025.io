@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试 remaining_chances 字段修复</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: white;
+        }
+        .test-section {
+            background-color: #2a2a2a;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+        }
+        .error {
+            border-left-color: #f44336;
+            background-color: #3a1a1a;
+        }
+        .success {
+            border-left-color: #4CAF50;
+            background-color: #1a3a1a;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .log {
+            background-color: #000;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 remaining_chances 字段修复测试</h1>
+    
+    <div class="test-section">
+        <h2>📋 测试步骤</h2>
+        <p>这个页面将测试以下内容：</p>
+        <ul>
+            <li>✅ 检查数据库连接</li>
+            <li>✅ 验证 users 表结构</li>
+            <li>✅ 检查 remaining_chances 字段是否存在</li>
+            <li>✅ 测试字段读写功能</li>
+            <li>✅ 验证数据同步</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>🔗 数据库连接测试</h2>
+        <button onclick="testConnection()">测试连接</button>
+        <div id="connection-result" class="log"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>📊 表结构检查</h2>
+        <button onclick="checkTableStructure()">检查表结构</button>
+        <div id="structure-result" class="log"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🧪 字段功能测试</h2>
+        <button onclick="testFieldOperations()">测试字段操作</button>
+        <div id="field-test-result" class="log"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>📈 用户数据查看</h2>
+        <button onclick="viewUserData()">查看用户数据</button>
+        <div id="user-data-result" class="log"></div>
+    </div>
+
+    <script src="supabase-config.js"></script>
+    <script>
+        let supabase;
+        
+        // 初始化 Supabase
+        async function initSupabase() {
+            try {
+                if (!window.SUPABASE_CONFIG) {
+                    throw new Error('Supabase 配置未加载');
+                }
+                
+                const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.SUPABASE_CONFIG;
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                console.log('Supabase 客户端初始化成功');
+                return true;
+            } catch (error) {
+                console.error('Supabase 初始化失败:', error);
+                return false;
+            }
+        }
+
+        // 测试数据库连接
+        async function testConnection() {
+            const resultDiv = document.getElementById('connection-result');
+            resultDiv.textContent = '正在测试连接...';
+            
+            try {
+                if (!supabase) {
+                    const initialized = await initSupabase();
+                    if (!initialized) {
+                        throw new Error('Supabase 初始化失败');
+                    }
+                }
+
+                // 测试简单查询
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('count', { count: 'exact', head: true });
+
+                if (error) throw error;
+
+                resultDiv.textContent = `✅ 连接成功！\n用户表中共有 ${data || 0} 条记录`;
+                resultDiv.parentElement.className = 'test-section success';
+            } catch (error) {
+                resultDiv.textContent = `❌ 连接失败：${error.message}`;
+                resultDiv.parentElement.className = 'test-section error';
+            }
+        }
+
+        // 检查表结构
+        async function checkTableStructure() {
+            const resultDiv = document.getElementById('structure-result');
+            resultDiv.textContent = '正在检查表结构...';
+            
+            try {
+                // 尝试查询一个用户记录来检查字段
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('*')
+                    .limit(1);
+
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    const user = data[0];
+                    const fields = Object.keys(user);
+                    
+                    let result = '✅ 表结构检查完成\n\n';
+                    result += '📋 可用字段：\n';
+                    fields.forEach(field => {
+                        result += `  • ${field}\n`;
+                    });
+                    
+                    // 检查关键字段
+                    const requiredFields = ['remaining_chances', 'draw_count', 'is_active'];
+                    result += '\n🔍 关键字段检查：\n';
+                    requiredFields.forEach(field => {
+                        if (fields.includes(field)) {
+                            result += `  ✅ ${field} - 存在\n`;
+                        } else {
+                            result += `  ❌ ${field} - 缺失\n`;
+                        }
+                    });
+                    
+                    // 检查旧字段
+                    if (fields.includes('drawchances')) {
+                        result += `  ⚠️ drawchances - 旧字段仍存在（建议迁移后删除）\n`;
+                    }
+                    
+                    resultDiv.textContent = result;
+                    resultDiv.parentElement.className = 'test-section success';
+                } else {
+                    resultDiv.textContent = '⚠️ 表中没有数据，无法检查字段结构';
+                    resultDiv.parentElement.className = 'test-section';
+                }
+            } catch (error) {
+                resultDiv.textContent = `❌ 检查失败：${error.message}`;
+                resultDiv.parentElement.className = 'test-section error';
+            }
+        }
+
+        // 测试字段操作
+        async function testFieldOperations() {
+            const resultDiv = document.getElementById('field-test-result');
+            resultDiv.textContent = '正在测试字段操作...';
+            
+            try {
+                let result = '🧪 字段操作测试\n\n';
+                
+                // 1. 测试读取 remaining_chances
+                const { data: users, error: readError } = await supabase
+                    .from('users')
+                    .select('id, name, remaining_chances, draw_count')
+                    .limit(5);
+
+                if (readError) throw readError;
+
+                result += '✅ 读取测试通过\n';
+                result += `📊 查询到 ${users.length} 个用户记录\n\n`;
+
+                if (users.length > 0) {
+                    result += '👥 用户数据示例：\n';
+                    users.forEach((user, index) => {
+                        result += `  ${index + 1}. ${user.name || '未知'} - 剩余机会: ${user.remaining_chances || 0}, 抽奖次数: ${user.draw_count || 0}\n`;
+                    });
+                }
+
+                // 2. 测试更新操作（如果有用户数据）
+                if (users.length > 0) {
+                    const testUser = users[0];
+                    const originalChances = testUser.remaining_chances || 0;
+                    const newChances = originalChances + 1;
+                    
+                    result += '\n🔄 测试更新操作...\n';
+                    
+                    // 更新
+                    const { error: updateError } = await supabase
+                        .from('users')
+                        .update({ remaining_chances: newChances })
+                        .eq('id', testUser.id);
+
+                    if (updateError) throw updateError;
+                    
+                    // 验证更新
+                    const { data: updatedUser, error: verifyError } = await supabase
+                        .from('users')
+                        .select('remaining_chances')
+                        .eq('id', testUser.id)
+                        .single();
+
+                    if (verifyError) throw verifyError;
+                    
+                    if (updatedUser.remaining_chances === newChances) {
+                        result += '✅ 更新测试通过\n';
+                        
+                        // 恢复原值
+                        await supabase
+                            .from('users')
+                            .update({ remaining_chances: originalChances })
+                            .eq('id', testUser.id);
+                        
+                        result += '✅ 数据已恢复原值\n';
+                    } else {
+                        result += '❌ 更新验证失败\n';
+                    }
+                }
+
+                resultDiv.textContent = result;
+                resultDiv.parentElement.className = 'test-section success';
+            } catch (error) {
+                resultDiv.textContent = `❌ 测试失败：${error.message}`;
+                resultDiv.parentElement.className = 'test-section error';
+            }
+        }
+
+        // 查看用户数据
+        async function viewUserData() {
+            const resultDiv = document.getElementById('user-data-result');
+            resultDiv.textContent = '正在加载用户数据...';
+            
+            try {
+                const { data: users, error } = await supabase
+                    .from('users')
+                    .select('id, name, phone, remaining_chances, draw_count, created_at')
+                    .order('created_at', { ascending: false })
+                    .limit(10);
+
+                if (error) throw error;
+
+                let result = `📊 用户数据总览（最近 ${users.length} 条记录）\n\n`;
+                
+                if (users.length === 0) {
+                    result += '暂无用户数据';
+                } else {
+                    result += '序号 | 姓名 | 手机 | 剩余机会 | 抽奖次数 | 注册时间\n';
+                    result += ''.padEnd(80, '-') + '\n';
+                    
+                    users.forEach((user, index) => {
+                        const name = (user.name || '未知').padEnd(8);
+                        const phone = (user.phone || '未知').padEnd(12);
+                        const chances = String(user.remaining_chances || 0).padEnd(6);
+                        const draws = String(user.draw_count || 0).padEnd(6);
+                        const date = new Date(user.created_at).toLocaleDateString();
+                        
+                        result += `${String(index + 1).padEnd(3)} | ${name} | ${phone} | ${chances} | ${draws} | ${date}\n`;
+                    });
+                    
+                    // 统计信息
+                    const totalChances = users.reduce((sum, user) => sum + (user.remaining_chances || 0), 0);
+                    const totalDraws = users.reduce((sum, user) => sum + (user.draw_count || 0), 0);
+                    
+                    result += '\n📈 统计信息：\n';
+                    result += `  • 总剩余机会: ${totalChances}\n`;
+                    result += `  • 总抽奖次数: ${totalDraws}\n`;
+                    result += `  • 平均剩余机会: ${(totalChances / users.length).toFixed(2)}\n`;
+                }
+
+                resultDiv.textContent = result;
+                resultDiv.parentElement.className = 'test-section success';
+            } catch (error) {
+                resultDiv.textContent = `❌ 加载失败：${error.message}`;
+                resultDiv.parentElement.className = 'test-section error';
+            }
+        }
+
+        // 页面加载时自动初始化
+        window.addEventListener('load', async () => {
+            await initSupabase();
+            console.log('页面加载完成，Supabase 已初始化');
+        });
+    </script>
+</body>
+</html>
