@@ -64,7 +64,7 @@
         </div>
 
         <!-- 系统状态概览 -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
             <div class="admin-card bg-gray-800 p-6 rounded-lg">
                 <div class="flex items-center justify-between">
                     <div>
@@ -86,7 +86,16 @@
             <div class="admin-card bg-gray-800 p-6 rounded-lg">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-gray-400 text-sm">抽奖次数</p>
+                        <p class="text-gray-400 text-sm">今日参与者</p>
+                        <p id="today-participants" class="text-2xl font-bold text-purple-400">-</p>
+                    </div>
+                    <div class="text-3xl">🎯</div>
+                </div>
+            </div>
+            <div class="admin-card bg-gray-800 p-6 rounded-lg">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">总抽奖次数</p>
                         <p id="total-draws" class="text-2xl font-bold text-yellow-400">-</p>
                     </div>
                     <div class="text-3xl">🎲</div>
@@ -105,14 +114,31 @@
 
         <!-- 主要功能区域 -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- 用户管理 -->
+            <!-- 用户搜索和管理 -->
             <div class="admin-card bg-gray-800 p-6 rounded-lg">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-xl font-bold text-blue-400">👥 用户管理</h3>
+                    <h3 class="text-xl font-bold text-blue-400">👥 用户搜索与管理</h3>
                     <button onclick="refreshUserData()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm">
                         🔄 刷新
                     </button>
                 </div>
+                
+                <!-- 搜索框 -->
+                <div class="mb-6">
+                    <div class="flex gap-4">
+                        <div class="flex-1">
+                            <input type="text" id="user-search" placeholder="搜索用户名或电话号码..." 
+                                   class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500">
+                        </div>
+                        <button onclick="searchUsers()" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+                            搜索
+                        </button>
+                        <button onclick="clearSearch()" class="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors">
+                            清除
+                        </button>
+                    </div>
+                </div>
+
                 <div class="data-table">
                     <table class="w-full text-sm">
                         <thead class="bg-gray-700 sticky top-0">
@@ -120,12 +146,15 @@
                                 <th class="text-left p-2">姓名</th>
                                 <th class="text-left p-2">电话</th>
                                 <th class="text-left p-2">注册时间</th>
-                                <th class="text-left p-2">状态</th>
+                                <th class="text-left p-2">抽奖次数</th>
+                                <th class="text-left p-2">获得奖品</th>
+                                <th class="text-left p-2">剩余机会</th>
+                                <th class="text-left p-2">操作</th>
                             </tr>
                         </thead>
                         <tbody id="users-table" class="divide-y divide-gray-700">
                             <tr>
-                                <td colspan="4" class="text-center p-4 text-gray-400">加载中...</td>
+                                <td colspan="7" class="text-center p-4 text-gray-400">加载中...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -137,19 +166,165 @@
                 <h3 class="text-xl font-bold text-green-400 mb-4">🎮 抽奖设置</h3>
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">奖品配置</label>
-                        <textarea id="prizes-config" rows="6" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white" placeholder="输入奖品配置 JSON..."></textarea>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">奖品配置（简单格式）</label>
+                        <div class="text-sm text-gray-400 mb-2">
+                            格式：奖品名称 概率%（每行一个奖品）<br>
+                            例如：1602 mug 1%，1602 Pen 15%，Cash Voucher RM5 18%
+                        </div>
+                        <textarea id="prizes-simple-config" rows="8" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white" 
+                                  placeholder="1602 Mug 1%&#10;1602 Pen 15%&#10;Cash Voucher RM5 18%&#10;Online Voucher RM10 7%&#10;Online Voucher RM20 5%&#10;Free 660ml Bottle 8%&#10;New 330ml Can 12%&#10;Cooler Bag 7%&#10;Wine Card 0%&#10;Spin Again! 9%&#10;Thank You 18%"></textarea>
+                    </div>
+                    <div class="bg-gray-700 p-3 rounded">
+                        <h4 class="text-sm font-medium text-gray-300 mb-2">当前概率总计：<span id="total-percentage" class="text-yellow-400">0%</span></h4>
+                        <div class="text-xs text-gray-400">建议总计为100%，系统会自动调整</div>
                     </div>
                     <div class="flex space-x-2">
-                        <button onclick="updatePrizes()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex-1">
+                        <button onclick="updatePrizesSimple()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex-1">
                             💾 保存设置
                         </button>
-                        <button onclick="resetPrizes()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">
-                            🔄 重置
+                        <button onclick="resetPrizesSimple()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">
+                            🔄 重置为默认
+                        </button>
+                        <button onclick="validatePrizes()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+                            ✅ 验证配置
+                        </button>
+                    </div>
+                    
+                    <!-- 高级配置（可折叠） -->
+                    <div class="mt-4">
+                        <button onclick="toggleAdvancedConfig()" class="text-sm text-blue-400 hover:text-blue-300">
+                            🔧 显示高级JSON配置
+                        </button>
+                        <div id="advanced-config" class="hidden mt-3">
+                            <label class="block text-sm font-medium text-gray-300 mb-2">JSON配置（高级用户）</label>
+                            <textarea id="prizes-json-config" rows="6" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-xs" 
+                                      placeholder="自动生成的JSON配置..." readonly></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 公告栏管理 -->
+        <div class="admin-card bg-gray-800 p-6 rounded-lg mb-8">
+            <h3 class="text-xl font-bold text-green-400 mb-4">📢 公告栏管理</h3>
+            
+            <!-- 发布新公告 -->
+            <div class="mb-6 p-4 bg-gray-700 rounded-lg">
+                <h4 class="text-lg font-semibold text-white mb-3">发布新公告</h4>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">公告标题</label>
+                        <input type="text" id="announcement-title" placeholder="输入公告标题..." 
+                               class="w-full px-4 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-green-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">公告内容</label>
+                        <textarea id="announcement-content" rows="4" placeholder="输入公告内容..." 
+                                  class="w-full px-4 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-green-500"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">上传图片/海报</label>
+                        <input type="file" id="announcement-image" accept="image/*" 
+                               class="w-full px-4 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
+                    </div>
+                    <div class="flex gap-4">
+                        <button onclick="publishAnnouncement()" class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">
+                            📢 发布公告
+                        </button>
+                        <button onclick="clearAnnouncementForm()" class="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors">
+                            清除
                         </button>
                     </div>
                 </div>
             </div>
+
+            <!-- 公告列表 -->
+            <div>
+                <h4 class="text-lg font-semibold text-white mb-3">已发布公告</h4>
+                <div id="announcements-list" class="space-y-4">
+                    <!-- 公告列表将在这里动态加载 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 产品知识库管理 -->
+        <div class="admin-card bg-gray-800 p-6 rounded-lg mb-8">
+            <h3 class="text-xl font-bold text-purple-400 mb-4">📚 产品知识库管理</h3>
+            
+            <!-- 添加新知识 -->
+            <div class="mb-6 p-4 bg-gray-700 rounded-lg">
+                <h4 class="text-lg font-semibold text-white mb-3">添加产品知识</h4>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">产品名称</label>
+                        <input type="text" id="knowledge-title" placeholder="输入产品名称..." 
+                               class="w-full px-4 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">产品分类</label>
+                        <select id="knowledge-category" 
+                                class="w-full px-4 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white focus:outline-none focus:border-purple-500">
+                            <option value="">选择分类</option>
+                            <option value="electronics">电子产品</option>
+                            <option value="clothing">服装</option>
+                            <option value="food">食品</option>
+                            <option value="beauty">美容护肤</option>
+                            <option value="home">家居用品</option>
+                            <option value="sports">运动健身</option>
+                            <option value="other">其他</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">产品描述</label>
+                        <textarea id="knowledge-description" rows="4" placeholder="输入详细的产品描述..." 
+                                  class="w-full px-4 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">产品特点</label>
+                        <textarea id="knowledge-features" rows="3" placeholder="输入产品特点（每行一个特点）..." 
+                                  class="w-full px-4 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">价格信息</label>
+                        <input type="text" id="knowledge-price" placeholder="例如：RM 59.90" 
+                               class="w-full px-4 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">上传产品图片</label>
+                        <input type="file" id="knowledge-images" accept="image/*" multiple 
+                               class="w-full px-4 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">上传产品文档</label>
+                        <input type="file" id="knowledge-documents" accept=".pdf,.doc,.docx,.txt" multiple 
+                               class="w-full px-4 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
+                    </div>
+                    <div class="flex gap-4">
+                        <button onclick="addKnowledge()" class="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors">
+                            📚 添加知识
+                        </button>
+                        <button onclick="clearKnowledgeForm()" class="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors">
+                            清除
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 知识库列表 -->
+            <div>
+                <h4 class="text-lg font-semibold text-white mb-3">知识库内容</h4>
+                <div class="mb-4">
+                    <input type="text" id="knowledge-search" placeholder="搜索产品知识..." 
+                           class="w-full px-4 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500">
+                </div>
+                <div id="knowledge-list" class="space-y-4">
+                    <!-- 知识库列表将在这里动态加载 -->
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
             <!-- 实时监控 -->
             <div class="admin-card bg-gray-800 p-6 rounded-lg">
@@ -313,6 +488,12 @@
                 // 加载奖品配置
                 await loadPrizesConfig();
                 
+                // 加载公告列表
+                await loadAnnouncements();
+                
+                // 加载知识库
+                await loadKnowledge();
+                
                 addLog('📊 仪表板数据加载完成', 'success');
             } catch (error) {
                 addLog(`❌ 数据加载失败: ${error.message}`, 'error');
@@ -341,6 +522,22 @@
                     document.getElementById('today-registrations').textContent = todayCount || 0;
                 }
 
+                // 今日参与者数（今天有抽奖记录的用户）
+                try {
+                    const { data: todayParticipants, error: participantsError } = await supabase
+                        .from('users')
+                        .select('id')
+                        .gte('last_draw_date', today);
+
+                    if (!participantsError) {
+                        document.getElementById('today-participants').textContent = todayParticipants?.length || 0;
+                    } else {
+                        document.getElementById('today-participants').textContent = '0';
+                    }
+                } catch (e) {
+                    document.getElementById('today-participants').textContent = '0';
+                }
+
                 // 抽奖次数统计（从用户表的 draw_count 字段）
                 const { data: drawData, error: drawError } = await supabase
                     .from('users')
@@ -353,6 +550,11 @@
 
             } catch (error) {
                 addLog(`❌ 用户统计加载失败: ${error.message}`, 'error');
+                // 设置默认值
+                document.getElementById('total-users').textContent = '0';
+                document.getElementById('today-registrations').textContent = '0';
+                document.getElementById('today-participants').textContent = '0';
+                document.getElementById('total-draws').textContent = '0';
             }
         }
 
@@ -396,6 +598,12 @@
             }
         }
 
+        // 奖品颜色配置
+        const prizeColors = [
+            "#fde047", "#4b5563", "#60a5fa", "#ef4444", "#a78bfa", 
+            "#f97316", "#22c55e", "#ec4899", "#d946ef", "#14b8a6", "#84cc16"
+        ];
+
         // 加载奖品配置
         async function loadPrizesConfig() {
             try {
@@ -407,31 +615,124 @@
 
                 if (error && error.code !== 'PGRST116') throw error;
 
-                const textarea = document.getElementById('prizes-config');
+                const simpleTextarea = document.getElementById('prizes-simple-config');
+                const jsonTextarea = document.getElementById('prizes-json-config');
+                
                 if (settings && settings.value) {
-                    textarea.value = JSON.stringify(settings.value, null, 2);
+                    // 将JSON配置转换为简单格式
+                    const prizes = settings.value.prizes || settings.value;
+                    const simpleFormat = prizes.map(prize => 
+                        `${prize.name || prize.text} ${(prize.percentage || prize.probability * 100)}%`
+                    ).join('\n');
+                    
+                    simpleTextarea.value = simpleFormat;
+                    if (jsonTextarea) jsonTextarea.value = JSON.stringify(settings.value, null, 2);
                 } else {
                     // 默认奖品配置
-                    const defaultPrizes = {
-                        prizes: [
-                            { name: "一等奖", probability: 0.05, color: "#ff6b6b" },
-                            { name: "二等奖", probability: 0.15, color: "#4ecdc4" },
-                            { name: "三等奖", probability: 0.30, color: "#45b7d1" },
-                            { name: "谢谢参与", probability: 0.50, color: "#96ceb4" }
-                        ]
-                    };
-                    textarea.value = JSON.stringify(defaultPrizes, null, 2);
+                    const defaultSimpleConfig = `1602 Mug 1%
+1602 Pen 15%
+Cash Voucher RM5 18%
+Online Voucher RM10 7%
+Online Voucher RM20 5%
+Free 660ml Bottle 8%
+New 330ml Can 12%
+Cooler Bag 7%
+Wine Card 0%
+Spin Again! 9%
+Thank You 18%`;
+                    simpleTextarea.value = defaultSimpleConfig;
+                    updateJsonFromSimple();
                 }
+                
+                calculateTotalPercentage();
             } catch (error) {
                 addLog(`❌ 奖品配置加载失败: ${error.message}`, 'error');
             }
         }
 
-        // 更新奖品配置
-        async function updatePrizes() {
+        function parseSimpleConfig(text) {
+            const lines = text.split('\n').filter(line => line.trim());
+            const prizes = [];
+            
+            lines.forEach((line, index) => {
+                const match = line.trim().match(/^(.+?)\s+(\d+(?:\.\d+)?)%$/);
+                if (match) {
+                    const name = match[1].trim();
+                    const percentage = parseFloat(match[2]);
+                    const color = prizeColors[index % prizeColors.length];
+                    
+                    prizes.push({
+                        text: name,
+                        name: name,
+                        percentage: percentage,
+                        probability: percentage / 100,
+                        color: color
+                    });
+                }
+            });
+            
+            return prizes;
+        }
+
+        function updateJsonFromSimple() {
             try {
-                const textarea = document.getElementById('prizes-config');
-                const config = JSON.parse(textarea.value);
+                const simpleText = document.getElementById('prizes-simple-config').value;
+                const prizes = parseSimpleConfig(simpleText);
+                
+                const config = {
+                    prizes: prizes,
+                    updated_at: new Date().toISOString()
+                };
+                
+                const jsonTextarea = document.getElementById('prizes-json-config');
+                if (jsonTextarea) jsonTextarea.value = JSON.stringify(config, null, 2);
+                calculateTotalPercentage();
+            } catch (error) {
+                console.error('解析简单配置失败:', error);
+            }
+        }
+
+        function calculateTotalPercentage() {
+            try {
+                const simpleText = document.getElementById('prizes-simple-config').value;
+                const prizes = parseSimpleConfig(simpleText);
+                const total = prizes.reduce((sum, prize) => sum + prize.percentage, 0);
+                
+                const totalElement = document.getElementById('total-percentage');
+                if (totalElement) {
+                    totalElement.textContent = `${total.toFixed(1)}%`;
+                    
+                    // 根据总计改变颜色
+                    if (total === 100) {
+                        totalElement.className = 'text-green-400';
+                    } else if (total > 95 && total < 105) {
+                        totalElement.className = 'text-yellow-400';
+                    } else {
+                        totalElement.className = 'text-red-400';
+                    }
+                }
+            } catch (error) {
+                const totalElement = document.getElementById('total-percentage');
+                if (totalElement) {
+                    totalElement.textContent = '错误';
+                    totalElement.className = 'text-red-400';
+                }
+            }
+        }
+
+        async function updatePrizesSimple() {
+            try {
+                const simpleText = document.getElementById('prizes-simple-config').value;
+                const prizes = parseSimpleConfig(simpleText);
+                
+                if (prizes.length === 0) {
+                    throw new Error('请输入有效的奖品配置');
+                }
+                
+                const config = {
+                    prizes: prizes,
+                    updated_at: new Date().toISOString()
+                };
 
                 const { error } = await supabase
                     .from('settings')
@@ -443,12 +744,91 @@
 
                 if (error) throw error;
 
+                updateJsonFromSimple();
                 addLog('✅ 奖品配置已保存', 'success');
-                alert('奖品配置保存成功！');
+                alert('奖品配置保存成功！前端将在下次刷新时更新。');
             } catch (error) {
                 addLog(`❌ 奖品配置保存失败: ${error.message}`, 'error');
                 alert(`保存失败: ${error.message}`);
             }
+        }
+
+        function validatePrizes() {
+            try {
+                const simpleText = document.getElementById('prizes-simple-config').value;
+                const prizes = parseSimpleConfig(simpleText);
+                
+                if (prizes.length === 0) {
+                    alert('❌ 没有找到有效的奖品配置');
+                    return;
+                }
+                
+                const total = prizes.reduce((sum, prize) => sum + prize.percentage, 0);
+                const duplicates = prizes.filter((prize, index, arr) => 
+                    arr.findIndex(p => p.name === prize.name) !== index
+                );
+                
+                let message = `✅ 配置验证结果:\n`;
+                message += `- 奖品数量: ${prizes.length}\n`;
+                message += `- 概率总计: ${total.toFixed(1)}%\n`;
+                
+                if (duplicates.length > 0) {
+                    message += `⚠️ 发现重复奖品: ${duplicates.map(d => d.name).join(', ')}\n`;
+                }
+                
+                if (total !== 100) {
+                    message += `⚠️ 概率总计不等于100%，建议调整\n`;
+                }
+                
+                message += `\n奖品列表:\n`;
+                prizes.forEach(prize => {
+                    message += `- ${prize.name}: ${prize.percentage}%\n`;
+                });
+                
+                alert(message);
+                updateJsonFromSimple();
+            } catch (error) {
+                alert(`❌ 验证失败: ${error.message}`);
+            }
+        }
+
+        function resetPrizesSimple() {
+            if (confirm('确定要重置为默认奖品配置吗？')) {
+                const defaultConfig = `1602 Mug 1%
+1602 Pen 15%
+Cash Voucher RM5 18%
+Online Voucher RM10 7%
+Online Voucher RM20 5%
+Free 660ml Bottle 8%
+New 330ml Can 12%
+Cooler Bag 7%
+Wine Card 0%
+Spin Again! 9%
+Thank You 18%`;
+                
+                document.getElementById('prizes-simple-config').value = defaultConfig;
+                updateJsonFromSimple();
+                addLog('🔄 奖品配置已重置为默认', 'info');
+            }
+        }
+
+        function toggleAdvancedConfig() {
+            const advancedDiv = document.getElementById('advanced-config');
+            const button = event.target;
+            
+            if (advancedDiv.classList.contains('hidden')) {
+                advancedDiv.classList.remove('hidden');
+                button.textContent = '🔧 隐藏高级JSON配置';
+                updateJsonFromSimple();
+            } else {
+                advancedDiv.classList.add('hidden');
+                button.textContent = '🔧 显示高级JSON配置';
+            }
+        }
+
+        // 更新奖品配置（兼容旧版本）
+        async function updatePrizes() {
+            return await updatePrizesSimple();
         }
 
         // 重置奖品配置
@@ -601,6 +981,556 @@
         window.addEventListener('beforeunload', function() {
             if (realtimeChannel && supabase) {
                 supabase.removeChannel(realtimeChannel);
+            }
+        });
+
+        // 搜索用户
+        async function searchUsers() {
+            const searchTerm = document.getElementById('user-search').value.trim();
+            if (!searchTerm) {
+                await refreshUserData();
+                return;
+            }
+
+            try {
+                const { data: users, error } = await supabase
+                    .from('users')
+                    .select('*')
+                    .or(`name.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                displayUsers(users);
+                addLog(`🔍 搜索用户: "${searchTerm}", 找到 ${users.length} 条结果`, 'info');
+            } catch (error) {
+                addLog(`❌ 搜索用户失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 清除搜索
+        function clearSearch() {
+            document.getElementById('user-search').value = '';
+            refreshUserData();
+        }
+
+        // 显示用户列表
+         function displayUsers(users) {
+             const tbody = document.getElementById('users-table');
+             tbody.innerHTML = '';
+ 
+             if (users && users.length > 0) {
+                 users.forEach(user => {
+                     const row = document.createElement('tr');
+                     row.className = 'hover:bg-gray-700';
+                     row.innerHTML = `
+                         <td class="p-2">${user.name || '-'}</td>
+                         <td class="p-2">${user.phone || '-'}</td>
+                         <td class="p-2">${new Date(user.created_at).toLocaleString()}</td>
+                         <td class="p-2">${user.draw_count || 0}</td>
+                         <td class="p-2">${user.won_prizes || '-'}</td>
+                         <td class="p-2">${user.remaining_chances || 0}</td>
+                         <td class="p-2">
+                             <button onclick="addChance('${user.id}', '${user.name}')" class="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs mr-1">
+                                 +1机会
+                             </button>
+                             <button onclick="editUser('${user.id}')" class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs mr-1">
+                                 编辑
+                             </button>
+                             <button onclick="deleteUser('${user.id}')" class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs">
+                                 删除
+                             </button>
+                         </td>
+                     `;
+                     tbody.appendChild(row);
+                 });
+             } else {
+                 tbody.innerHTML = '<tr><td colspan="7" class="text-center p-4 text-gray-400">暂无用户数据</td></tr>';
+             }
+         }
+
+         // 为用户添加抽奖机会
+         async function addChance(userId, userName) {
+             if (!confirm(`确定要为用户 "${userName}" 添加1次抽奖机会吗？`)) return;
+
+             try {
+                 // 获取当前用户数据
+                 const { data: user, error: getUserError } = await supabase
+                     .from('users')
+                     .select('remaining_chances, extra_chances')
+                     .eq('id', userId)
+                     .single();
+
+                 if (getUserError) throw getUserError;
+
+                 // 更新用户的剩余机会和额外机会
+                 const { error: updateError } = await supabase
+                     .from('users')
+                     .update({
+                         remaining_chances: (user.remaining_chances || 0) + 1,
+                         extra_chances: (user.extra_chances || 0) + 1,
+                         updated_at: new Date().toISOString()
+                     })
+                     .eq('id', userId);
+
+                 if (updateError) throw updateError;
+
+                 addLog(`✅ 已为用户 "${userName}" 添加1次抽奖机会`, 'success');
+                 
+                 // 刷新用户列表
+                 const searchTerm = document.getElementById('user-search').value.trim();
+                 if (searchTerm) {
+                     await searchUsers();
+                 } else {
+                     await refreshUserData();
+                 }
+
+                 alert(`成功为用户 "${userName}" 添加1次抽奖机会！`);
+             } catch (error) {
+                 addLog(`❌ 添加抽奖机会失败: ${error.message}`, 'error');
+                 alert(`添加失败: ${error.message}`);
+             }
+         }
+
+         // 编辑用户
+         async function editUser(userId) {
+             try {
+                 const { data: user, error } = await supabase
+                     .from('users')
+                     .select('*')
+                     .eq('id', userId)
+                     .single();
+
+                 if (error) throw error;
+
+                 const newName = prompt('用户名:', user.name || '');
+                 if (newName === null) return;
+
+                 const newPhone = prompt('电话号码:', user.phone || '');
+                 if (newPhone === null) return;
+
+                 const newChances = prompt('剩余机会:', user.remaining_chances || 0);
+                 if (newChances === null) return;
+
+                 const { error: updateError } = await supabase
+                     .from('users')
+                     .update({
+                         name: newName,
+                         phone: newPhone,
+                         remaining_chances: parseInt(newChances) || 0,
+                         updated_at: new Date().toISOString()
+                     })
+                     .eq('id', userId);
+
+                 if (updateError) throw updateError;
+
+                 addLog(`✅ 用户信息已更新`, 'success');
+                 
+                 // 刷新用户列表
+                 const searchTerm = document.getElementById('user-search').value.trim();
+                 if (searchTerm) {
+                     await searchUsers();
+                 } else {
+                     await refreshUserData();
+                 }
+
+                 alert('用户信息更新成功！');
+             } catch (error) {
+                 addLog(`❌ 更新用户信息失败: ${error.message}`, 'error');
+                 alert(`更新失败: ${error.message}`);
+             }
+         }
+
+         // 删除用户
+         async function deleteUser(userId) {
+             if (!confirm('确定要删除这个用户吗？此操作不可恢复！')) return;
+
+             try {
+                 const { error } = await supabase
+                     .from('users')
+                     .delete()
+                     .eq('id', userId);
+
+                 if (error) throw error;
+
+                 addLog('🗑️ 用户已删除', 'info');
+                 
+                 // 刷新用户列表
+                 const searchTerm = document.getElementById('user-search').value.trim();
+                 if (searchTerm) {
+                     await searchUsers();
+                 } else {
+                     await refreshUserData();
+                 }
+
+                 alert('用户删除成功！');
+             } catch (error) {
+                 addLog(`❌ 删除用户失败: ${error.message}`, 'error');
+                 alert(`删除失败: ${error.message}`);
+             }
+         }
+
+        // 发布公告
+        async function publishAnnouncement() {
+            const title = document.getElementById('announcement-title').value.trim();
+            const content = document.getElementById('announcement-content').value.trim();
+            const imageFile = document.getElementById('announcement-image').files[0];
+
+            if (!title || !content) {
+                alert('请填写公告标题和内容');
+                return;
+            }
+
+            try {
+                let imageUrl = null;
+
+                // 如果有图片，先上传图片
+                if (imageFile) {
+                    const fileName = `announcements/${Date.now()}_${imageFile.name}`;
+                    const { data: uploadData, error: uploadError } = await supabase.storage
+                        .from('images')
+                        .upload(fileName, imageFile);
+
+                    if (uploadError) throw uploadError;
+
+                    const { data: urlData } = supabase.storage
+                        .from('images')
+                        .getPublicUrl(fileName);
+                    
+                    imageUrl = urlData.publicUrl;
+                }
+
+                // 保存公告到数据库
+                const { error } = await supabase
+                    .from('announcements')
+                    .insert({
+                        title,
+                        content,
+                        image_url: imageUrl,
+                        created_at: new Date().toISOString(),
+                        is_active: true
+                    });
+
+                if (error) throw error;
+
+                addLog('📢 公告发布成功', 'success');
+                clearAnnouncementForm();
+                await loadAnnouncements();
+                alert('公告发布成功！');
+            } catch (error) {
+                addLog(`❌ 公告发布失败: ${error.message}`, 'error');
+                alert(`发布失败: ${error.message}`);
+            }
+        }
+
+        // 清除公告表单
+        function clearAnnouncementForm() {
+            document.getElementById('announcement-title').value = '';
+            document.getElementById('announcement-content').value = '';
+            document.getElementById('announcement-image').value = '';
+        }
+
+        // 加载公告列表
+        async function loadAnnouncements() {
+            try {
+                const { data: announcements, error } = await supabase
+                    .from('announcements')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                const container = document.getElementById('announcements-list');
+                container.innerHTML = '';
+
+                if (announcements && announcements.length > 0) {
+                    announcements.forEach(announcement => {
+                        const div = document.createElement('div');
+                        div.className = 'bg-gray-700 p-4 rounded-lg';
+                        div.innerHTML = `
+                            <div class="flex justify-between items-start mb-2">
+                                <h5 class="font-semibold text-white">${announcement.title}</h5>
+                                <div class="flex gap-2">
+                                    <button onclick="toggleAnnouncement('${announcement.id}', ${!announcement.is_active})" 
+                                            class="px-2 py-1 rounded text-xs ${
+                                                announcement.is_active ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-green-600 hover:bg-green-700'
+                                            } text-white">
+                                        ${announcement.is_active ? '隐藏' : '显示'}
+                                    </button>
+                                    <button onclick="deleteAnnouncement('${announcement.id}')" 
+                                            class="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs">
+                                        删除
+                                    </button>
+                                </div>
+                            </div>
+                            <p class="text-gray-300 text-sm mb-2">${announcement.content}</p>
+                            ${announcement.image_url ? `<img src="${announcement.image_url}" class="max-w-xs rounded mb-2" alt="公告图片">` : ''}
+                            <div class="flex justify-between items-center text-xs text-gray-400">
+                                <span>发布时间: ${new Date(announcement.created_at).toLocaleString()}</span>
+                                <span class="px-2 py-1 rounded ${
+                                    announcement.is_active ? 'bg-green-600' : 'bg-gray-600'
+                                }">
+                                    ${announcement.is_active ? '已发布' : '已隐藏'}
+                                </span>
+                            </div>
+                        `;
+                        container.appendChild(div);
+                    });
+                } else {
+                    container.innerHTML = '<div class="text-gray-400 text-center p-4">暂无公告</div>';
+                }
+            } catch (error) {
+                addLog(`❌ 加载公告失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 切换公告状态
+        async function toggleAnnouncement(id, isActive) {
+            try {
+                const { error } = await supabase
+                    .from('announcements')
+                    .update({ is_active: isActive })
+                    .eq('id', id);
+
+                if (error) throw error;
+
+                addLog(`📢 公告状态已更新: ${isActive ? '显示' : '隐藏'}`, 'info');
+                await loadAnnouncements();
+            } catch (error) {
+                addLog(`❌ 更新公告状态失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 删除公告
+        async function deleteAnnouncement(id) {
+            if (!confirm('确定要删除这条公告吗？')) return;
+
+            try {
+                const { error } = await supabase
+                    .from('announcements')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) throw error;
+
+                addLog('🗑️ 公告已删除', 'info');
+                await loadAnnouncements();
+            } catch (error) {
+                addLog(`❌ 删除公告失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 添加产品知识
+        async function addKnowledge() {
+            const title = document.getElementById('knowledge-title').value.trim();
+            const category = document.getElementById('knowledge-category').value;
+            const description = document.getElementById('knowledge-description').value.trim();
+            const features = document.getElementById('knowledge-features').value.trim();
+            const price = document.getElementById('knowledge-price').value.trim();
+            const imageFiles = document.getElementById('knowledge-images').files;
+            const documentFiles = document.getElementById('knowledge-documents').files;
+
+            if (!title || !category || !description) {
+                alert('请填写产品名称、分类和描述');
+                return;
+            }
+
+            try {
+                let imageUrls = [];
+                let documentUrls = [];
+
+                // 上传图片
+                for (let i = 0; i < imageFiles.length; i++) {
+                    const file = imageFiles[i];
+                    const fileName = `knowledge/images/${Date.now()}_${i}_${file.name}`;
+                    const { data: uploadData, error: uploadError } = await supabase.storage
+                        .from('images')
+                        .upload(fileName, file);
+
+                    if (uploadError) throw uploadError;
+
+                    const { data: urlData } = supabase.storage
+                        .from('images')
+                        .getPublicUrl(fileName);
+                    
+                    imageUrls.push(urlData.publicUrl);
+                }
+
+                // 上传文档
+                for (let i = 0; i < documentFiles.length; i++) {
+                    const file = documentFiles[i];
+                    const fileName = `knowledge/documents/${Date.now()}_${i}_${file.name}`;
+                    const { data: uploadData, error: uploadError } = await supabase.storage
+                        .from('documents')
+                        .upload(fileName, file);
+
+                    if (uploadError) throw uploadError;
+
+                    const { data: urlData } = supabase.storage
+                        .from('documents')
+                        .getPublicUrl(fileName);
+                    
+                    documentUrls.push({
+                        name: file.name,
+                        url: urlData.publicUrl
+                    });
+                }
+
+                // 保存知识到数据库
+                const { error } = await supabase
+                    .from('knowledge_base')
+                    .insert({
+                        title,
+                        category,
+                        description,
+                        features: features.split('\n').filter(f => f.trim()),
+                        price,
+                        image_urls: imageUrls,
+                        document_urls: documentUrls,
+                        created_at: new Date().toISOString()
+                    });
+
+                if (error) throw error;
+
+                addLog('📚 产品知识添加成功', 'success');
+                clearKnowledgeForm();
+                await loadKnowledge();
+                alert('产品知识添加成功！');
+            } catch (error) {
+                addLog(`❌ 添加产品知识失败: ${error.message}`, 'error');
+                alert(`添加失败: ${error.message}`);
+            }
+        }
+
+        // 清除知识表单
+        function clearKnowledgeForm() {
+            document.getElementById('knowledge-title').value = '';
+            document.getElementById('knowledge-category').value = '';
+            document.getElementById('knowledge-description').value = '';
+            document.getElementById('knowledge-features').value = '';
+            document.getElementById('knowledge-price').value = '';
+            document.getElementById('knowledge-images').value = '';
+            document.getElementById('knowledge-documents').value = '';
+        }
+
+        // 加载知识库
+        async function loadKnowledge() {
+            try {
+                const { data: knowledge, error } = await supabase
+                    .from('knowledge_base')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                const container = document.getElementById('knowledge-list');
+                container.innerHTML = '';
+
+                if (knowledge && knowledge.length > 0) {
+                    knowledge.forEach(item => {
+                        const div = document.createElement('div');
+                        div.className = 'bg-gray-700 p-4 rounded-lg';
+                        div.innerHTML = `
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <h5 class="font-semibold text-white">${item.title}</h5>
+                                    <span class="text-xs px-2 py-1 bg-purple-600 rounded">${getCategoryName(item.category)}</span>
+                                </div>
+                                <button onclick="deleteKnowledge('${item.id}')" 
+                                        class="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs">
+                                    删除
+                                </button>
+                            </div>
+                            <p class="text-gray-300 text-sm mb-2">${item.description}</p>
+                            ${item.price ? `<p class="text-green-400 font-semibold mb-2">价格: ${item.price}</p>` : ''}
+                            ${item.features && item.features.length > 0 ? `
+                                <div class="mb-2">
+                                    <p class="text-sm font-medium text-gray-300 mb-1">产品特点:</p>
+                                    <ul class="text-xs text-gray-400 list-disc list-inside">
+                                        ${item.features.map(f => `<li>${f}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            ` : ''}
+                            ${item.image_urls && item.image_urls.length > 0 ? `
+                                <div class="mb-2">
+                                    <p class="text-sm font-medium text-gray-300 mb-1">产品图片:</p>
+                                    <div class="flex gap-2 flex-wrap">
+                                        ${item.image_urls.map(url => `<img src="${url}" class="w-16 h-16 object-cover rounded" alt="产品图片">`).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+                            ${item.document_urls && item.document_urls.length > 0 ? `
+                                <div class="mb-2">
+                                    <p class="text-sm font-medium text-gray-300 mb-1">相关文档:</p>
+                                    <div class="flex gap-2 flex-wrap">
+                                        ${item.document_urls.map(doc => `<a href="${doc.url}" target="_blank" class="text-xs px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded">${doc.name}</a>`).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+                            <div class="text-xs text-gray-400">
+                                创建时间: ${new Date(item.created_at).toLocaleString()}
+                            </div>
+                        `;
+                        container.appendChild(div);
+                    });
+                } else {
+                    container.innerHTML = '<div class="text-gray-400 text-center p-4">暂无产品知识</div>';
+                }
+            } catch (error) {
+                addLog(`❌ 加载知识库失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 获取分类名称
+        function getCategoryName(category) {
+            const categories = {
+                'electronics': '电子产品',
+                'clothing': '服装',
+                'food': '食品',
+                'beauty': '美容护肤',
+                'home': '家居用品',
+                'sports': '运动健身',
+                'other': '其他'
+            };
+            return categories[category] || category;
+        }
+
+        // 删除知识
+        async function deleteKnowledge(id) {
+            if (!confirm('确定要删除这条产品知识吗？')) return;
+
+            try {
+                const { error } = await supabase
+                    .from('knowledge_base')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) throw error;
+
+                addLog('🗑️ 产品知识已删除', 'info');
+                await loadKnowledge();
+            } catch (error) {
+                addLog(`❌ 删除产品知识失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 搜索框事件监听
+        document.addEventListener('DOMContentLoaded', function() {
+            const userSearchInput = document.getElementById('user-search');
+            if (userSearchInput) {
+                userSearchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        searchUsers();
+                    }
+                });
+            }
+
+            const knowledgeSearchInput = document.getElementById('knowledge-search');
+            if (knowledgeSearchInput) {
+                knowledgeSearchInput.addEventListener('input', function() {
+                    // 实现知识库搜索功能
+                    // 这里可以添加实时搜索逻辑
+                });
             }
         });
 

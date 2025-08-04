@@ -13,7 +13,12 @@ const SUPABASE_CONFIG = {
     TABLES: {
         USERS: 'users',
         SETTINGS: 'settings', 
-        KNOWLEDGE: 'knowledge'
+        KNOWLEDGE: 'knowledge',
+        ANNOUNCEMENTS: 'announcements',
+        PRODUCT_KNOWLEDGE: 'product_knowledge',
+        FILE_UPLOADS: 'file_uploads',
+        DRAW_HISTORY: 'draw_history',
+        SYSTEM_STATS: 'system_stats'
     },
     
     // 实时订阅配置

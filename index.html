@@ -444,7 +444,9 @@
 
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
-        const prizes = [
+        
+        // 默认奖品配置（离线模式或加载失败时使用）
+        let prizes = [
             { text: "Cash Voucher RM5", color: "#fde047", percentage: 18 },
             { text: "Thank You", color: "#4b5563", percentage: 25 },
             { text: "Online Voucher RM10", color: "#60a5fa", percentage: 7 },
@@ -459,15 +461,28 @@
         ];
 
         let totalPercentage = 0;
-        const prizeSegments = prizes.map(p => {
+        let prizeSegments = prizes.map(p => {
             const start = totalPercentage;
             totalPercentage += p.percentage;
             const end = totalPercentage;
             return { ...p, start, end };
         });
+        
+        // 更新奖品段落计算的函数
+        function updatePrizeSegments() {
+            let total = 0;
+            prizeSegments = prizes.map(p => {
+                const start = total;
+                total += p.percentage;
+                const end = total;
+                return { ...p, start, end };
+            });
+            numSegments = prizes.length;
+            anglePerSegment = 2 * Math.PI / numSegments;
+        }
 
-        const numSegments = prizes.length;
-        const anglePerSegment = 2 * Math.PI / numSegments;
+        let numSegments = prizes.length;
+        let anglePerSegment = 2 * Math.PI / numSegments;
         let isSpinning = false;
         let currentUser = null;
         let unsubscribeUser;
@@ -960,31 +975,89 @@
         
         async function fetchSettings() {
             try {
-                // 获取公告设置
+                // 获取最新的活跃公告
                 const { data: announcementData, error: announcementError } = await supabase
-                    .from(TABLES.SETTINGS)
-                    .select('content')
-                    .eq('id', 'announcement')
-                    .single();
+                    .from('announcements')
+                    .select('*')
+                    .eq('is_active', true)
+                    .order('created_at', { ascending: false })
+                    .limit(1);
                 
-                if (announcementData && !announcementError && announcementData.content) {
-                    showGenericModal('announcement', announcementData.content);
+                if (announcementData && announcementData.length > 0 && !announcementError) {
+                    const announcement = announcementData[0];
+                    showAnnouncementModal(announcement);
                 }
                 
-                // 获取知识库设置
+                // 获取产品知识库内容
                 const { data: knowledgeData, error: knowledgeError } = await supabase
-                    .from(TABLES.KNOWLEDGE)
-                    .select('content')
-                    .eq('id', 'main')
-                    .single();
+                    .from('product_knowledge')
+                    .select('*')
+                    .eq('is_active', true);
                 
                 if (knowledgeData && !knowledgeError) {
-                    knowledgeBaseContent = knowledgeData.content;
-                    console.log("AI Knowledge Base loaded.");
+                    // 将知识库内容格式化为AI可用的文本
+                    knowledgeBaseContent = knowledgeData.map(item => 
+                        `产品名称: ${item.name}\n分类: ${item.category}\n描述: ${item.description}\n特点: ${item.features}\n价格: ${item.price}`
+                    ).join('\n\n');
+                    console.log("AI Knowledge Base loaded with", knowledgeData.length, "products.");
+                }
+                
+                // 获取奖品配置
+                const { data: prizesData, error: prizesError } = await supabase
+                    .from('settings')
+                    .select('value')
+                    .eq('key', 'prizes_config')
+                    .single();
+                
+                if (prizesData && !prizesError && prizesData.value && prizesData.value.prizes) {
+                    // 更新奖品配置
+                    prizes = prizesData.value.prizes.map(prize => ({
+                        text: prize.text || prize.name,
+                        color: prize.color,
+                        percentage: prize.percentage
+                    }));
+                    
+                    // 重新计算奖品段落
+                    updatePrizeSegments();
+                    
+                    // 重新绘制转盘
+                    drawWheel();
+                    
+                    console.log("Prizes configuration loaded from backend:", prizes.length, "prizes");
+                } else {
+                    console.log("Using default prizes configuration");
                 }
             } catch (error) {
                 console.error("Error fetching settings:", error);
             }
+        }
+
+        // 显示公告弹窗
+        function showAnnouncementModal(announcement) {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 w-full h-full flex items-center justify-center modal-bg z-50 p-4';
+            modal.innerHTML = `
+                <div class="bg-gray-800 text-white rounded-lg shadow-2xl p-6 max-w-md w-full mx-auto">
+                    <div class="text-center">
+                        <h3 class="text-2xl font-bold mb-4 text-yellow-300">${announcement.title}</h3>
+                        ${announcement.image_url ? `<img src="${announcement.image_url}" alt="公告图片" class="w-full h-48 object-cover rounded-lg mb-4">` : ''}
+                        <div class="text-left mb-6">
+                            <p class="text-gray-300 whitespace-pre-wrap">${announcement.content}</p>
+                        </div>
+                        <button onclick="this.closest('.fixed').remove()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors">
+                            ${currentLang === 'zh' ? '我知道了' : 'Got it'}
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            
+            // 自动关闭功能（可选）
+            setTimeout(() => {
+                if (modal.parentNode) {
+                    modal.remove();
+                }
+            }, 30000); // 30秒后自动关闭
         }
         
         // 离线模式支持

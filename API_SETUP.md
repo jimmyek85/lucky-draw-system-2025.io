@@ -18,9 +18,9 @@
 1. 打开项目根目录下的 `config.js` 文件
 2. 找到这一行：
    ```javascript
-   GEMINI_API_KEY: 'YOUR_GEMINI_API_KEY_HERE',
+   GEMINI_API_KEY: 'AIzaSyDEpz7tsqqZ6-9YBXUovTczOfrm5ny7rbk',
    ```
-3. 将 `YOUR_GEMINI_API_KEY_HERE` 替换为您刚才获取的实际 API 密钥
+3. 将 `AIzaSyDEpz7tsqqZ6-9YBXUovTczOfrm5ny7rbk` 替换为您刚才获取的实际 API 密钥
 4. 保存文件
 
 ### 3. 示例配置
@@ -28,7 +28,7 @@
 ```javascript
 const API_CONFIG = {
     // 将下面的密钥替换为您的实际密钥
-    GEMINI_API_KEY: 'AIzaSyBxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+    GEMINI_API_KEY: 'AIzaSyDEpz7tsqqZ6-9YBXUovTczOfrm5ny7rbk',
     
     GEMINI_API_URL: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
     
