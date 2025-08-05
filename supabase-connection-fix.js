@@ -217,19 +217,26 @@ class SupabaseConnectionFix {
                 }
             }
 
-            // 创建新的客户端实例
+            // 创建新的客户端实例，优化实时连接配置
             window.supabase = window.supabase.createClient(
                 config.SUPABASE_URL,
                 config.SUPABASE_ANON_KEY,
                 {
                     auth: {
                         persistSession: false,
-                        autoRefreshToken: false
+                        autoRefreshToken: true
                     },
                     realtime: {
                         params: {
-                            eventsPerSecond: 2
+                            eventsPerSecond: 10
+                        },
+                        heartbeatIntervalMs: 30000,
+                        reconnectAfterMs: function(tries) {
+                            return Math.min(tries * 1000, 30000);
                         }
+                    },
+                    db: {
+                        schema: 'public'
                     },
                     global: {
                         headers: {
@@ -243,7 +250,7 @@ class SupabaseConnectionFix {
             this.fixes.push({
                 type: 'success',
                 category: 'client',
-                message: 'Supabase 客户端重新初始化成功'
+                message: 'Supabase 客户端重新初始化成功（已优化实时连接）'
             });
         } catch (error) {
             this.fixes.push({

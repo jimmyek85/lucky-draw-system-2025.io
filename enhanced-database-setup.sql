@@ -7,7 +7,7 @@ ADD COLUMN IF NOT EXISTS prizes_won JSONB DEFAULT '[]'::jsonb,
 ADD COLUMN IF NOT EXISTS extra_chances INTEGER DEFAULT 0,
 ADD COLUMN IF NOT EXISTS total_spins INTEGER DEFAULT 0,
 ADD COLUMN IF NOT EXISTS last_spin_date TIMESTAMP WITH TIME ZONE,
-ADD COLUMN IF NOT EXISTS remaining_chances INTEGER DEFAULT 1,
+ADD COLUMN IF NOT EXISTS remaining_chances INTEGER DEFAULT 3,
 ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true,
 ADD COLUMN IF NOT EXISTS draw_count INTEGER DEFAULT 0;
 
@@ -61,9 +61,11 @@ CREATE TABLE IF NOT EXISTS file_uploads (
 CREATE TABLE IF NOT EXISTS draw_history (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    prize_name VARCHAR(255) NOT NULL,
-    prize_type VARCHAR(100), -- 'physical', 'voucher', 'discount', 'none'
-    spin_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    user_phone VARCHAR(20) NOT NULL,
+    user_name VARCHAR(255) NOT NULL,
+    prize_won VARCHAR(255) NOT NULL,
+    draw_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    remaining_chances_after INTEGER DEFAULT 0,
     is_claimed BOOLEAN DEFAULT false,
     claimed_at TIMESTAMP WITH TIME ZONE,
     notes TEXT
@@ -89,7 +91,8 @@ CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at);
 CREATE INDEX IF NOT EXISTS idx_announcements_active ON announcements(is_active, priority);
 CREATE INDEX IF NOT EXISTS idx_product_knowledge_active ON product_knowledge(is_active, category);
 CREATE INDEX IF NOT EXISTS idx_draw_history_user_id ON draw_history(user_id);
-CREATE INDEX IF NOT EXISTS idx_draw_history_date ON draw_history(spin_date);
+CREATE INDEX IF NOT EXISTS idx_draw_history_date ON draw_history(draw_date);
+CREATE INDEX IF NOT EXISTS idx_draw_history_user_phone ON draw_history(user_phone);
 CREATE INDEX IF NOT EXISTS idx_system_stats_date ON system_stats(stat_date);
 
 -- 8. 创建触发器函数来自动更新统计数据
@@ -102,7 +105,7 @@ BEGIN
         CURRENT_DATE,
         (SELECT COUNT(*) FROM users),
         (SELECT COUNT(*) FROM users WHERE DATE(created_at) = CURRENT_DATE),
-        (SELECT COUNT(*) FROM draw_history WHERE DATE(spin_date) = CURRENT_DATE),
+        (SELECT COUNT(*) FROM draw_history WHERE DATE(draw_date) = CURRENT_DATE),
         (SELECT COUNT(*) FROM draw_history)
     )
     ON CONFLICT (stat_date) 

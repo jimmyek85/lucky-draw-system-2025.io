@@ -39,6 +39,27 @@ const API_CONFIG = {
     }
 };
 
+// 抽奖系统配置
+const LOTTERY_CONFIG = {
+    // 新用户注册时的初始抽奖机会数量
+    INITIAL_CHANCES: 1,
+    
+    // 每日免费抽奖机会（如果启用）
+    DAILY_FREE_CHANCES: 1,
+    
+    // 是否启用每日免费机会
+    ENABLE_DAILY_FREE: false,
+    
+    // "再来一次"奖品给予的额外机会数
+    SPIN_AGAIN_BONUS: 1,
+    
+    // 最大累积抽奖机会数（防止无限累积）
+    MAX_ACCUMULATED_CHANCES: 10,
+    
+    // 是否允许管理员手动添加机会
+    ALLOW_ADMIN_ADD_CHANCES: true
+};
+
 // 检查 API 密钥是否已设置
 function isApiKeyConfigured() {
     return API_CONFIG.GEMINI_API_KEY && 
@@ -70,7 +91,8 @@ function getConfigStatus() {
 // 导出配置（用于模块化）
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { 
-        API_CONFIG, 
+        API_CONFIG,
+        LOTTERY_CONFIG,
         isApiKeyConfigured, 
         validateApiKey, 
         getConfigStatus 

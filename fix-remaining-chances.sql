@@ -1,7 +1,7 @@
 -- 修复remaining_chances字段问题
 -- 确保users表中有remaining_chances字段
 ALTER TABLE users 
-ADD COLUMN IF NOT EXISTS remaining_chances INTEGER DEFAULT 1;
+ADD COLUMN IF NOT EXISTS remaining_chances INTEGER DEFAULT 3;
 
 -- 同步现有的drawchances字段到remaining_chances
 UPDATE users SET remaining_chances = drawchances WHERE drawchances IS NOT NULL;

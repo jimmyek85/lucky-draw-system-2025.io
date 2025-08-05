@@ -383,6 +383,60 @@ Spend RM55 or more (based on one receipt), you can purchase 660ml bottles of cra
             </div>
         </div>
 
+        <!-- 系统配置 -->
+        <div class="mt-8 admin-card bg-gray-800 p-6 rounded-lg">
+            <h3 class="text-xl font-bold text-purple-400 mb-4">⚙️ 系统配置</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- 抽奖机会配置 -->
+                <div class="bg-gray-700 p-4 rounded-lg">
+                    <h4 class="text-lg font-semibold text-white mb-3">🎯 抽奖机会配置</h4>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">新用户初始抽奖机会</label>
+                            <input type="number" id="initial-chances" min="1" max="10" value="1" 
+                                   class="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded text-white">
+                            <div class="text-xs text-gray-400 mt-1">建议设置为 1-5 次</div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">"再来一次"奖励机会</label>
+                            <input type="number" id="spin-again-bonus" min="1" max="5" value="1" 
+                                   class="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded text-white">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">最大累积机会数</label>
+                            <input type="number" id="max-chances" min="5" max="50" value="10" 
+                                   class="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded text-white">
+                        </div>
+                        <button onclick="saveLotteryConfig()" class="w-full bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded transition-colors">
+                            💾 保存配置
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 系统状态配置 -->
+                <div class="bg-gray-700 p-4 rounded-lg">
+                    <h4 class="text-lg font-semibold text-white mb-3">🔧 系统状态</h4>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-300">抽奖系统状态</span>
+                            <span id="lottery-status" class="text-green-400">正常运行</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-300">数据库连接</span>
+                            <span id="db-status" class="text-green-400">已连接</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-300">实时同步</span>
+                            <span id="realtime-status" class="text-green-400">已启用</span>
+                        </div>
+                        <button onclick="loadLotteryConfig()" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors">
+                            🔄 重新加载配置
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- 系统工具 -->
         <div class="mt-8 admin-card bg-gray-800 p-6 rounded-lg">
             <h3 class="text-xl font-bold text-red-400 mb-4">🔧 系统工具</h3>
@@ -423,17 +477,31 @@ Spend RM55 or more (based on one receipt), you can purchase 660ml bottles of cra
                     throw new Error('Supabase API Key 未正确配置');
                 }
 
-                // 初始化客户端
+                // 初始化客户端，优化实时连接配置
                 supabase = window.supabase.createClient(
                     config.SUPABASE_URL,
                     config.SUPABASE_ANON_KEY,
                     {
                         auth: {
-                            persistSession: false
+                            persistSession: false,
+                            autoRefreshToken: true
                         },
                         realtime: {
                             params: {
                                 eventsPerSecond: 10
+                            },
+                            heartbeatIntervalMs: 30000,
+                            reconnectAfterMs: function(tries) {
+                                return Math.min(tries * 1000, 30000);
+                            }
+                        },
+                        db: {
+                            schema: 'public'
+                        },
+                        global: {
+                            headers: {
+                                'Cache-Control': 'no-cache',
+                                'Pragma': 'no-cache'
                             }
                         }
                     }
@@ -1045,16 +1113,54 @@ Thank You 18%`;
  
              if (users && users.length > 0) {
                  users.forEach(user => {
+                     // 处理奖品记录显示
+                     let prizesDisplay = '-';
+                     if (user.prizeswon && Array.isArray(user.prizeswon) && user.prizeswon.length > 0) {
+                         prizesDisplay = user.prizeswon.map(prize => {
+                             if (typeof prize === 'string') {
+                                 return prize;
+                             } else if (prize.prize) {
+                                 return prize.prize;
+                             } else if (prize.name) {
+                                 return prize.name;
+                             }
+                             return JSON.stringify(prize);
+                         }).join(', ');
+                         
+                         // 如果奖品太长，截断显示
+                         if (prizesDisplay.length > 50) {
+                             prizesDisplay = prizesDisplay.substring(0, 50) + '...';
+                         }
+                     } else if (user.prizes_won && Array.isArray(user.prizes_won) && user.prizes_won.length > 0) {
+                         prizesDisplay = user.prizes_won.map(prize => {
+                             if (typeof prize === 'string') {
+                                 return prize;
+                             } else if (prize.prize) {
+                                 return prize.prize;
+                             } else if (prize.name) {
+                                 return prize.name;
+                             }
+                             return JSON.stringify(prize);
+                         }).join(', ');
+                         
+                         if (prizesDisplay.length > 50) {
+                             prizesDisplay = prizesDisplay.substring(0, 50) + '...';
+                         }
+                     }
+
                      const row = document.createElement('tr');
                      row.className = 'hover:bg-gray-700';
                      row.innerHTML = `
                          <td class="p-2">${user.name || '-'}</td>
                          <td class="p-2">${user.phone || '-'}</td>
-                         <td class="p-2">${new Date(user.created_at).toLocaleString()}</td>
-                         <td class="p-2">${user.draw_count || 0}</td>
-                         <td class="p-2">${user.won_prizes || '-'}</td>
+                         <td class="p-2">${new Date(user.created_at || user.joindate).toLocaleString()}</td>
+                         <td class="p-2">${user.draw_count || user.total_spins || 0}</td>
+                         <td class="p-2" title="${prizesDisplay}">${prizesDisplay}</td>
                          <td class="p-2">${user.remaining_chances || 0}</td>
                          <td class="p-2">
+                             <button onclick="viewUserPrizes('${user.id}', '${user.name}')" class="bg-purple-500 hover:bg-purple-600 text-white px-2 py-1 rounded text-xs mr-1">
+                                 查看奖品
+                             </button>
                              <button onclick="addChance('${user.id}', '${user.name}')" class="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs mr-1">
                                  +1机会
                              </button>
@@ -1191,6 +1297,121 @@ Thank You 18%`;
              } catch (error) {
                  addLog(`❌ 删除用户失败: ${error.message}`, 'error');
                  alert(`删除失败: ${error.message}`);
+             }
+         }
+
+         // 查看用户奖品详情
+         async function viewUserPrizes(userId, userName) {
+             try {
+                 // 获取用户详细信息和抽奖历史
+                 const { data: user, error: userError } = await supabase
+                     .from('users')
+                     .select('*')
+                     .eq('id', userId)
+                     .single();
+
+                 if (userError) throw userError;
+
+                 // 获取抽奖历史记录
+                 const { data: drawHistory, error: historyError } = await supabase
+                     .from('draw_history')
+                     .select('*')
+                     .eq('user_id', userId)
+                     .order('spin_date', { ascending: false });
+
+                 // 构建奖品详情显示
+                 let prizesContent = '';
+                 
+                 // 显示用户基本信息
+                 prizesContent += `<div class="mb-4 p-4 bg-gray-700 rounded">
+                     <h4 class="text-lg font-semibold text-white mb-2">用户信息</h4>
+                     <p><strong>姓名:</strong> ${user.name || '-'}</p>
+                     <p><strong>电话:</strong> ${user.phone || '-'}</p>
+                     <p><strong>注册时间:</strong> ${new Date(user.created_at || user.joindate).toLocaleString()}</p>
+                     <p><strong>总抽奖次数:</strong> ${user.draw_count || user.total_spins || 0}</p>
+                     <p><strong>剩余机会:</strong> ${user.remaining_chances || 0}</p>
+                 </div>`;
+
+                 // 显示获奖记录
+                 prizesContent += `<div class="mb-4 p-4 bg-gray-700 rounded">
+                     <h4 class="text-lg font-semibold text-white mb-2">🏆 获奖记录</h4>`;
+
+                 // 从用户表的奖品字段显示
+                 if (user.prizeswon && Array.isArray(user.prizeswon) && user.prizeswon.length > 0) {
+                     prizesContent += '<div class="mb-3"><h5 class="font-medium text-green-400">用户表记录:</h5><ul class="list-disc list-inside text-gray-300">';
+                     user.prizeswon.forEach((prize, index) => {
+                         let prizeText = '';
+                         if (typeof prize === 'string') {
+                             prizeText = prize;
+                         } else if (prize.prize) {
+                             prizeText = `${prize.prize} (${new Date(prize.timestamp || prize.date).toLocaleString()})`;
+                         } else if (prize.name) {
+                             prizeText = `${prize.name} (${new Date(prize.timestamp || prize.date).toLocaleString()})`;
+                         } else {
+                             prizeText = JSON.stringify(prize);
+                         }
+                         prizesContent += `<li>${prizeText}</li>`;
+                     });
+                     prizesContent += '</ul></div>';
+                 } else if (user.prizes_won && Array.isArray(user.prizes_won) && user.prizes_won.length > 0) {
+                     prizesContent += '<div class="mb-3"><h5 class="font-medium text-green-400">用户表记录:</h5><ul class="list-disc list-inside text-gray-300">';
+                     user.prizes_won.forEach((prize, index) => {
+                         let prizeText = '';
+                         if (typeof prize === 'string') {
+                             prizeText = prize;
+                         } else if (prize.prize) {
+                             prizeText = `${prize.prize} (${new Date(prize.timestamp || prize.date).toLocaleString()})`;
+                         } else if (prize.name) {
+                             prizeText = `${prize.name} (${new Date(prize.timestamp || prize.date).toLocaleString()})`;
+                         } else {
+                             prizeText = JSON.stringify(prize);
+                         }
+                         prizesContent += `<li>${prizeText}</li>`;
+                     });
+                     prizesContent += '</ul></div>';
+                 }
+
+                 // 从抽奖历史表显示
+                 if (!historyError && drawHistory && drawHistory.length > 0) {
+                     prizesContent += '<div class="mb-3"><h5 class="font-medium text-blue-400">抽奖历史记录:</h5><ul class="list-disc list-inside text-gray-300">';
+                     drawHistory.forEach(record => {
+                         const prizeText = record.prize_won || record.result || '未知奖品';
+                         const dateText = new Date(record.spin_date || record.created_at).toLocaleString();
+                         prizesContent += `<li>${prizeText} - ${dateText}</li>`;
+                     });
+                     prizesContent += '</ul></div>';
+                 }
+
+                 if (!user.prizeswon?.length && !user.prizes_won?.length && (!drawHistory || drawHistory.length === 0)) {
+                     prizesContent += '<p class="text-gray-400">该用户暂无获奖记录</p>';
+                 }
+
+                 prizesContent += '</div>';
+
+                 // 显示模态框
+                 const modal = document.createElement('div');
+                 modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+                 modal.innerHTML = `
+                     <div class="bg-gray-800 p-6 rounded-lg max-w-2xl max-h-96 overflow-y-auto">
+                         <div class="flex justify-between items-center mb-4">
+                             <h3 class="text-xl font-bold text-white">${userName} - 奖品详情</h3>
+                             <button onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-white">
+                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                 </svg>
+                             </button>
+                         </div>
+                         <div class="text-gray-300">
+                             ${prizesContent}
+                         </div>
+                     </div>
+                 `;
+                 document.body.appendChild(modal);
+
+                 addLog(`🔍 查看用户 "${userName}" 的奖品详情`, 'info');
+             } catch (error) {
+                 addLog(`❌ 查看用户奖品失败: ${error.message}`, 'error');
+                 alert(`查看失败: ${error.message}`);
              }
          }
 
@@ -1650,6 +1871,149 @@ Thank You 18%`;
                 await loadUserStats();
             }
         }, 30000); // 每30秒刷新一次
+
+        // 抽奖配置管理函数
+        async function saveLotteryConfig() {
+            try {
+                const initialChances = parseInt(document.getElementById('initial-chances').value) || 1;
+                const spinAgainBonus = parseInt(document.getElementById('spin-again-bonus').value) || 1;
+                const maxChances = parseInt(document.getElementById('max-chances').value) || 10;
+
+                // 验证输入值
+                if (initialChances < 1 || initialChances > 10) {
+                    alert('初始抽奖机会必须在 1-10 之间');
+                    return;
+                }
+
+                if (spinAgainBonus < 1 || spinAgainBonus > 5) {
+                    alert('"再来一次"奖励机会必须在 1-5 之间');
+                    return;
+                }
+
+                if (maxChances < 5 || maxChances > 50) {
+                    alert('最大累积机会数必须在 5-50 之间');
+                    return;
+                }
+
+                // 保存配置到数据库
+                const configData = {
+                    INITIAL_CHANCES: initialChances,
+                    SPIN_AGAIN_BONUS: spinAgainBonus,
+                    MAX_ACCUMULATED_CHANCES: maxChances,
+                    DAILY_FREE_CHANCES: 1,
+                    ENABLE_DAILY_FREE: false,
+                    ALLOW_ADMIN_ADD_CHANCES: true
+                };
+
+                const { error } = await supabase
+                    .from('settings')
+                    .upsert({
+                        key: 'lottery_config',
+                        value: JSON.stringify(configData),
+                        updated_at: new Date().toISOString()
+                    });
+
+                if (error) throw error;
+
+                addLog('⚙️ 抽奖配置已保存', 'success');
+                alert('抽奖配置保存成功！\n\n注意：新配置将在下次用户注册时生效。');
+
+                // 更新系统状态显示
+                updateSystemStatus();
+
+            } catch (error) {
+                addLog(`❌ 保存抽奖配置失败: ${error.message}`, 'error');
+                alert(`保存失败: ${error.message}`);
+            }
+        }
+
+        // 加载抽奖配置
+        async function loadLotteryConfig() {
+            try {
+                const { data, error } = await supabase
+                    .from('settings')
+                    .select('value')
+                    .eq('key', 'lottery_config')
+                    .single();
+
+                if (error && error.code !== 'PGRST116') { // PGRST116 表示没有找到记录
+                    throw error;
+                }
+
+                let config = {
+                    INITIAL_CHANCES: 1,
+                    SPIN_AGAIN_BONUS: 1,
+                    MAX_ACCUMULATED_CHANCES: 10
+                };
+
+                if (data && data.value) {
+                    try {
+                        config = JSON.parse(data.value);
+                    } catch (parseError) {
+                        addLog('⚠️ 配置数据格式错误，使用默认配置', 'warning');
+                    }
+                }
+
+                // 更新界面显示
+                document.getElementById('initial-chances').value = config.INITIAL_CHANCES || 1;
+                document.getElementById('spin-again-bonus').value = config.SPIN_AGAIN_BONUS || 1;
+                document.getElementById('max-chances').value = config.MAX_ACCUMULATED_CHANCES || 10;
+
+                addLog('🔄 抽奖配置已重新加载', 'info');
+                updateSystemStatus();
+
+            } catch (error) {
+                addLog(`❌ 加载抽奖配置失败: ${error.message}`, 'error');
+                // 使用默认值
+                document.getElementById('initial-chances').value = 1;
+                document.getElementById('spin-again-bonus').value = 1;
+                document.getElementById('max-chances').value = 10;
+            }
+        }
+
+        // 更新系统状态显示
+        async function updateSystemStatus() {
+            try {
+                // 检查数据库连接
+                const { error: dbError } = await supabase
+                    .from('users')
+                    .select('count', { count: 'exact', head: true });
+
+                const dbStatus = document.getElementById('db-status');
+                if (dbError) {
+                    dbStatus.textContent = '连接异常';
+                    dbStatus.className = 'text-red-400';
+                } else {
+                    dbStatus.textContent = '已连接';
+                    dbStatus.className = 'text-green-400';
+                }
+
+                // 检查实时连接状态
+                const realtimeStatus = document.getElementById('realtime-status');
+                if (realtimeChannel && realtimeChannel.state === 'joined') {
+                    realtimeStatus.textContent = '已启用';
+                    realtimeStatus.className = 'text-green-400';
+                } else {
+                    realtimeStatus.textContent = '未连接';
+                    realtimeStatus.className = 'text-yellow-400';
+                }
+
+                // 抽奖系统状态
+                const lotteryStatus = document.getElementById('lottery-status');
+                lotteryStatus.textContent = '正常运行';
+                lotteryStatus.className = 'text-green-400';
+
+            } catch (error) {
+                addLog(`❌ 更新系统状态失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 页面加载时加载配置
+        window.addEventListener('load', function() {
+            setTimeout(async () => {
+                await loadLotteryConfig();
+            }, 1500);
+        });
     </script>
 </body>
 </html>

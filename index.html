@@ -267,12 +267,36 @@
             console.error('This browser does not support fetch API. Please use a modern browser.');
         }
         
-        // 初始化 Supabase 客户端
+        // 初始化 Supabase 客户端，优化实时连接配置
         let supabase;
         try {
             supabase = window.supabase.createClient(
                 window.SUPABASE_CONFIG?.SUPABASE_URL || 'https://your-project-id.supabase.co',
-                window.SUPABASE_CONFIG?.SUPABASE_ANON_KEY || 'your-supabase-anon-key-here'
+                window.SUPABASE_CONFIG?.SUPABASE_ANON_KEY || 'your-supabase-anon-key-here',
+                {
+                    auth: {
+                        autoRefreshToken: true,
+                        persistSession: true
+                    },
+                    realtime: {
+                        params: {
+                            eventsPerSecond: 10
+                        },
+                        heartbeatIntervalMs: 30000,
+                        reconnectAfterMs: function(tries) {
+                            return Math.min(tries * 1000, 30000);
+                        }
+                    },
+                    db: {
+                        schema: 'public'
+                    },
+                    global: {
+                        headers: {
+                            'Cache-Control': 'no-cache',
+                            'Pragma': 'no-cache'
+                        }
+                    }
+                }
             );
         } catch (error) {
             console.error('Failed to initialize Supabase client:', error);
@@ -649,15 +673,37 @@
             } else {
                 // 在线模式：更新到 Supabase
                 try {
-                    const { error } = await supabase
+                    // 1. 更新用户表
+                    const { error: userError } = await supabase
                         .from(TABLES.USERS)
                         .update({
                             remaining_chances: newChances,
-                            prizeswon: updatedPrizes
+                            prizeswon: updatedPrizes,
+                            draw_count: (currentUser.draw_count || 0) + 1,
+                            last_draw_date: new Date().toISOString()
                         })
                         .eq('phone', currentUser.phone);
                     
-                    if (error) throw error;
+                    if (userError) throw userError;
+
+                    // 2. 保存抽奖记录到 draw_history 表
+                    const { error: historyError } = await supabase
+                        .from('draw_history')
+                        .insert({
+                            user_id: currentUser.id,
+                            user_phone: currentUser.phone,
+                            user_name: currentUser.name,
+                            prize_won: prize.text,
+                            draw_date: new Date().toISOString(),
+                            remaining_chances_after: newChances
+                        });
+                    
+                    if (historyError) {
+                        console.warn("抽奖记录保存失败:", historyError);
+                        // 不阻止主流程，只记录警告
+                    }
+
+                    console.log("用户数据和抽奖记录更新成功");
                 } catch (error) {
                     console.error("Error updating user data:", error);
                     // 如果更新失败，至少在本地更新
@@ -740,6 +786,36 @@
             }
         }
 
+        // 获取抽奖配置
+        async function getLotteryConfig() {
+            try {
+                const { data, error } = await supabase
+                    .from('settings')
+                    .select('value')
+                    .eq('key', 'lottery_config')
+                    .single();
+
+                if (error && error.code !== 'PGRST116') {
+                    console.warn('获取抽奖配置失败，使用默认配置:', error);
+                    return { INITIAL_CHANCES: 1 };
+                }
+
+                if (data && data.value) {
+                    try {
+                        return JSON.parse(data.value);
+                    } catch (parseError) {
+                        console.warn('配置数据格式错误，使用默认配置:', parseError);
+                        return { INITIAL_CHANCES: 1 };
+                    }
+                }
+
+                return { INITIAL_CHANCES: 1 };
+            } catch (error) {
+                console.warn('获取抽奖配置异常，使用默认配置:', error);
+                return { INITIAL_CHANCES: 1 };
+            }
+        }
+
         async function handleRegistration(e) {
             e.preventDefault();
             const name = document.getElementById('name').value.trim();
@@ -789,20 +865,23 @@
                         if (offlineNotice) offlineNotice.remove();
                     }
                 } else {
+                    // 获取抽奖配置
+                    const lotteryConfig = await getLotteryConfig();
+                    
                     // 创建新用户
                     const userData = {
                         name,
                         phone,
                         email,
                         address,
-                        remaining_chances: 1,
+                        remaining_chances: lotteryConfig.INITIAL_CHANCES || 1,
                         joindate: new Date().toISOString(),
                         prizeswon: []
                     };
                     
                     const { data, error } = await supabase
                         .from(TABLES.USERS)
-                        .insert([newUser])
+                        .insert([userData])
                         .select()
                         .single();
                     
@@ -835,7 +914,7 @@
                     phone,
                     email,
                     address,
-                    remaining_chances: 1,
+                    remaining_chances: (typeof LOTTERY_CONFIG !== 'undefined' && LOTTERY_CONFIG) ? LOTTERY_CONFIG.INITIAL_CHANCES : 1,
                     joindate: new Date().toISOString(),
                     prizeswon: []
                 };
