@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1602 Lucky Draw - 全系统连接测试</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .test-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid #3b82f6;
+        }
+        .test-card.success {
+            border-left-color: #10b981;
+            background-color: rgba(16, 185, 129, 0.1);
+        }
+        .test-card.error {
+            border-left-color: #ef4444;
+            background-color: rgba(239, 68, 68, 0.1);
+        }
+        .test-card.warning {
+            border-left-color: #f59e0b;
+            background-color: rgba(245, 158, 11, 0.1);
+        }
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .status-online { background-color: #10b981; }
+        .status-offline { background-color: #ef4444; }
+        .status-warning { background-color: #f59e0b; }
+        .log-entry {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 4px 8px;
+            margin: 2px 0;
+            border-radius: 4px;
+        }
+        .log-success { background-color: rgba(16, 185, 129, 0.2); color: #10b981; }
+        .log-error { background-color: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .log-info { background-color: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+        .log-warning { background-color: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- 页面标题 -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-blue-400 mb-2">🔧 1602 Lucky Draw</h1>
+            <h2 class="text-2xl text-gray-300 mb-4">全系统连接测试</h2>
+            <p class="text-gray-400">确保前端和后端数据连接正常，支持有网无网持续运行</p>
+        </div>
+
+        <!-- 控制面板 -->
+        <div class="bg-gray-800 rounded-lg p-6 mb-8">
+            <div class="flex flex-wrap gap-4 justify-center">
+                <button onclick="runFullTest()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors">
+                    🚀 运行完整测试
+                </button>
+                <button onclick="testFrontend()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors">
+                    🎯 测试前端 (index.html)
+                </button>
+                <button onclick="testBackend()" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors">
+                    ⚙️ 测试后端 (admin.html)
+                </button>
+                <button onclick="testNetworkResilience()" class="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors">
+                    📡 测试网络韧性
+                </button>
+                <button onclick="clearLogs()" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors">
+                    🗑️ 清除日志
+                </button>
+            </div>
+        </div>
+
+        <!-- 系统状态概览 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="test-card bg-gray-800 p-6 rounded-lg">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">Supabase 连接</p>
+                        <p id="supabase-status" class="text-xl font-bold">
+                            <span class="status-indicator status-offline"></span>检测中...
+                        </p>
+                    </div>
+                    <div class="text-3xl">🔗</div>
+                </div>
+            </div>
+            <div class="test-card bg-gray-800 p-6 rounded-lg">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">前端状态</p>
+                        <p id="frontend-status" class="text-xl font-bold">
+                            <span class="status-indicator status-offline"></span>未测试
+                        </p>
+                    </div>
+                    <div class="text-3xl">🎯</div>
+                </div>
+            </div>
+            <div class="test-card bg-gray-800 p-6 rounded-lg">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">后端状态</p>
+                        <p id="backend-status" class="text-xl font-bold">
+                            <span class="status-indicator status-offline"></span>未测试
+                        </p>
+                    </div>
+                    <div class="text-3xl">⚙️</div>
+                </div>
+            </div>
+            <div class="test-card bg-gray-800 p-6 rounded-lg">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">网络韧性</p>
+                        <p id="network-status" class="text-xl font-bold">
+                            <span class="status-indicator status-offline"></span>未测试
+                        </p>
+                    </div>
+                    <div class="text-3xl">📡</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 详细测试结果 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- 连接测试结果 -->
+            <div class="bg-gray-800 rounded-lg p-6">
+                <h3 class="text-xl font-bold text-blue-400 mb-4">🔍 连接测试结果</h3>
+                <div id="connection-tests" class="space-y-4">
+                    <!-- 测试结果将在这里显示 -->
+                </div>
+            </div>
+
+            <!-- 实时日志 -->
+            <div class="bg-gray-800 rounded-lg p-6">
+                <h3 class="text-xl font-bold text-green-400 mb-4">📋 实时日志</h3>
+                <div id="test-logs" class="bg-gray-900 rounded p-4 h-96 overflow-y-auto">
+                    <div class="log-entry log-info">系统初始化完成，等待测试...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 修复建议 -->
+        <div id="fix-suggestions" class="bg-gray-800 rounded-lg p-6 mt-8" style="display: none;">
+            <h3 class="text-xl font-bold text-yellow-400 mb-4">🔧 修复建议</h3>
+            <div id="suggestions-content" class="space-y-4">
+                <!-- 修复建议将在这里显示 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载必要的脚本 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="enhanced-supabase-connection.js"></script>
+
+    <script>
+        // 全局变量
+        let supabase = null;
+        let enhancedConnection = null;
+        let testResults = {
+            supabase: false,
+            frontend: false,
+            backend: false,
+            network: false
+        };
+
+        // 初始化系统
+        async function initializeSystem() {
+            addLog('info', '🚀 开始初始化系统...');
+            
+            try {
+                // 检查配置
+                if (!window.SUPABASE_CONFIG) {
+                    throw new Error('Supabase 配置未加载');
+                }
+
+                addLog('success', '✅ Supabase 配置已加载');
+
+                // 初始化 Supabase 客户端
+                supabase = window.supabase.createClient(
+                    window.SUPABASE_CONFIG.SUPABASE_URL,
+                    window.SUPABASE_CONFIG.SUPABASE_ANON_KEY
+                );
+
+                addLog('success', '✅ Supabase 客户端初始化成功');
+
+                // 初始化增强连接管理器
+                if (window.EnhancedSupabaseConnection) {
+                    enhancedConnection = new window.EnhancedSupabaseConnection();
+                    await enhancedConnection.initialize();
+                    addLog('success', '✅ 增强连接管理器初始化成功');
+                } else {
+                    addLog('warning', '⚠️ 增强连接管理器未找到，使用基础连接');
+                }
+
+                // 测试基础连接
+                await testSupabaseConnection();
+
+            } catch (error) {
+                addLog('error', `❌ 系统初始化失败: ${error.message}`);
+                updateStatus('supabase-status', '连接失败', 'error');
+            }
+        }
+
+        // 测试 Supabase 连接
+        async function testSupabaseConnection() {
+            addLog('info', '🔍 测试 Supabase 连接...');
+            
+            try {
+                // 测试基础连接
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('count', { count: 'exact', head: true });
+
+                if (error) {
+                    throw error;
+                }
+
+                testResults.supabase = true;
+                updateStatus('supabase-status', '连接正常', 'success');
+                addLog('success', '✅ Supabase 连接测试成功');
+
+                // 添加连接测试结果
+                addConnectionTest('Supabase 基础连接', true, '数据库连接正常');
+
+            } catch (error) {
+                testResults.supabase = false;
+                updateStatus('supabase-status', '连接失败', 'error');
+                addLog('error', `❌ Supabase 连接测试失败: ${error.message}`);
+                addConnectionTest('Supabase 基础连接', false, error.message);
+            }
+        }
+
+        // 运行完整测试
+        async function runFullTest() {
+            addLog('info', '🚀 开始运行完整系统测试...');
+            clearConnectionTests();
+
+            // 重置状态
+            Object.keys(testResults).forEach(key => {
+                testResults[key] = false;
+            });
+
+            // 依次运行所有测试
+            await testSupabaseConnection();
+            await testFrontend();
+            await testBackend();
+            await testNetworkResilience();
+
+            // 生成测试报告
+            generateTestReport();
+        }
+
+        // 测试前端功能
+        async function testFrontend() {
+            addLog('info', '🎯 测试前端功能...');
+            
+            try {
+                // 测试用户注册功能
+                const testUser = {
+                    name: 'Test User ' + Date.now(),
+                    phone: '1234567890',
+                    email: 'test@example.com',
+                    address: 'Test Address'
+                };
+
+                const { data, error } = await supabase
+                    .from('users')
+                    .insert([testUser])
+                    .select();
+
+                if (error) {
+                    throw error;
+                }
+
+                // 清理测试数据
+                await supabase
+                    .from('users')
+                    .delete()
+                    .eq('phone', testUser.phone);
+
+                testResults.frontend = true;
+                updateStatus('frontend-status', '功能正常', 'success');
+                addLog('success', '✅ 前端功能测试成功');
+                addConnectionTest('前端用户注册', true, '用户注册功能正常');
+
+            } catch (error) {
+                testResults.frontend = false;
+                updateStatus('frontend-status', '功能异常', 'error');
+                addLog('error', `❌ 前端功能测试失败: ${error.message}`);
+                addConnectionTest('前端用户注册', false, error.message);
+            }
+        }
+
+        // 测试后端功能
+        async function testBackend() {
+            addLog('info', '⚙️ 测试后端管理功能...');
+            
+            try {
+                // 测试管理员查询功能
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('*')
+                    .limit(1);
+
+                if (error) {
+                    throw error;
+                }
+
+                // 测试设置更新功能
+                const { data: settingsData, error: settingsError } = await supabase
+                    .from('settings')
+                    .select('*')
+                    .limit(1);
+
+                if (settingsError && settingsError.code !== 'PGRST116') {
+                    throw settingsError;
+                }
+
+                testResults.backend = true;
+                updateStatus('backend-status', '功能正常', 'success');
+                addLog('success', '✅ 后端管理功能测试成功');
+                addConnectionTest('后端管理查询', true, '管理功能正常');
+
+            } catch (error) {
+                testResults.backend = false;
+                updateStatus('backend-status', '功能异常', 'error');
+                addLog('error', `❌ 后端管理功能测试失败: ${error.message}`);
+                addConnectionTest('后端管理查询', false, error.message);
+            }
+        }
+
+        // 测试网络韧性
+        async function testNetworkResilience() {
+            addLog('info', '📡 测试网络韧性...');
+            
+            try {
+                // 测试重连机制
+                if (enhancedConnection) {
+                    const connectionStatus = await enhancedConnection.testConnection();
+                    
+                    if (connectionStatus.success) {
+                        testResults.network = true;
+                        updateStatus('network-status', '韧性良好', 'success');
+                        addLog('success', '✅ 网络韧性测试成功');
+                        addConnectionTest('网络韧性测试', true, '重连机制正常');
+                    } else {
+                        throw new Error(connectionStatus.error);
+                    }
+                } else {
+                    // 基础网络测试
+                    const response = await fetch(window.SUPABASE_CONFIG.SUPABASE_URL + '/rest/v1/', {
+                        method: 'HEAD',
+                        headers: {
+                            'apikey': window.SUPABASE_CONFIG.SUPABASE_ANON_KEY
+                        }
+                    });
+
+                    if (response.ok) {
+                        testResults.network = true;
+                        updateStatus('network-status', '连接正常', 'success');
+                        addLog('success', '✅ 基础网络测试成功');
+                        addConnectionTest('基础网络测试', true, '网络连接正常');
+                    } else {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                }
+
+            } catch (error) {
+                testResults.network = false;
+                updateStatus('network-status', '连接异常', 'error');
+                addLog('error', `❌ 网络韧性测试失败: ${error.message}`);
+                addConnectionTest('网络韧性测试', false, error.message);
+            }
+        }
+
+        // 更新状态显示
+        function updateStatus(elementId, text, type) {
+            const element = document.getElementById(elementId);
+            const indicator = element.querySelector('.status-indicator');
+            
+            element.innerHTML = `<span class="status-indicator status-${type === 'success' ? 'online' : type === 'error' ? 'offline' : 'warning'}"></span>${text}`;
+            
+            const card = element.closest('.test-card');
+            card.className = `test-card bg-gray-800 p-6 rounded-lg ${type}`;
+        }
+
+        // 添加日志条目
+        function addLog(type, message) {
+            const logsContainer = document.getElementById('test-logs');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            
+            logsContainer.appendChild(logEntry);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+        }
+
+        // 添加连接测试结果
+        function addConnectionTest(testName, success, message) {
+            const container = document.getElementById('connection-tests');
+            const testDiv = document.createElement('div');
+            testDiv.className = `test-card bg-gray-700 p-4 rounded ${success ? 'success' : 'error'}`;
+            
+            testDiv.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="font-semibold">${testName}</h4>
+                        <p class="text-sm text-gray-300">${message}</p>
+                    </div>
+                    <div class="text-2xl">${success ? '✅' : '❌'}</div>
+                </div>
+            `;
+            
+            container.appendChild(testDiv);
+        }
+
+        // 清除连接测试结果
+        function clearConnectionTests() {
+            document.getElementById('connection-tests').innerHTML = '';
+        }
+
+        // 清除日志
+        function clearLogs() {
+            document.getElementById('test-logs').innerHTML = '<div class="log-entry log-info">日志已清除，等待新的测试...</div>';
+        }
+
+        // 生成测试报告
+        function generateTestReport() {
+            const totalTests = Object.keys(testResults).length;
+            const passedTests = Object.values(testResults).filter(result => result).length;
+            const successRate = (passedTests / totalTests * 100).toFixed(1);
+
+            addLog('info', `📊 测试完成: ${passedTests}/${totalTests} 通过 (${successRate}%)`);
+
+            // 显示修复建议
+            if (passedTests < totalTests) {
+                showFixSuggestions();
+            }
+        }
+
+        // 显示修复建议
+        function showFixSuggestions() {
+            const suggestionsDiv = document.getElementById('fix-suggestions');
+            const contentDiv = document.getElementById('suggestions-content');
+            
+            let suggestions = [];
+
+            if (!testResults.supabase) {
+                suggestions.push({
+                    title: 'Supabase 连接问题',
+                    description: '检查 Supabase URL 和 API 密钥是否正确配置',
+                    action: '查看 supabase-config.js 文件'
+                });
+            }
+
+            if (!testResults.frontend) {
+                suggestions.push({
+                    title: '前端功能问题',
+                    description: '用户注册功能可能存在问题',
+                    action: '检查 index.html 中的用户注册逻辑'
+                });
+            }
+
+            if (!testResults.backend) {
+                suggestions.push({
+                    title: '后端管理问题',
+                    description: '管理员功能可能存在问题',
+                    action: '检查 admin.html 中的管理功能'
+                });
+            }
+
+            if (!testResults.network) {
+                suggestions.push({
+                    title: '网络连接问题',
+                    description: '网络韧性测试失败',
+                    action: '检查网络连接和防火墙设置'
+                });
+            }
+
+            contentDiv.innerHTML = suggestions.map(suggestion => `
+                <div class="bg-yellow-900 bg-opacity-30 border border-yellow-600 rounded p-4">
+                    <h4 class="font-semibold text-yellow-400">${suggestion.title}</h4>
+                    <p class="text-gray-300 mt-2">${suggestion.description}</p>
+                    <p class="text-yellow-300 mt-2 text-sm">建议: ${suggestion.action}</p>
+                </div>
+            `).join('');
+
+            suggestionsDiv.style.display = 'block';
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', initializeSystem);
+    </script>
+</body>
+</html>

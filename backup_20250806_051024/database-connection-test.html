@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据库连接测试</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .json-display {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-ok { background-color: #28a745; }
+        .status-error { background-color: #dc3545; }
+        .status-warning { background-color: #ffc107; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 数据库连接和功能测试</h1>
+        <p>此工具用于诊断数据库连接问题和验证所有功能是否正常工作。</p>
+        
+        <div class="test-section">
+            <h2>📡 连接状态</h2>
+            <div id="connectionStatus">检查中...</div>
+            <button onclick="testConnection()">重新测试连接</button>
+        </div>
+
+        <div class="test-section">
+            <h2>🗄️ 表结构检查</h2>
+            <div id="tableStatus">未检查</div>
+            <button onclick="checkTables()">检查表结构</button>
+        </div>
+
+        <div class="test-section">
+            <h2>📊 视图和函数检查</h2>
+            <div id="viewFunctionStatus">未检查</div>
+            <button onclick="checkViewsAndFunctions()">检查视图和函数</button>
+        </div>
+
+        <div class="test-section">
+            <h2>⚙️ 设置数据检查</h2>
+            <div id="settingsStatus">未检查</div>
+            <button onclick="checkSettings()">检查设置数据</button>
+        </div>
+
+        <div class="test-section">
+            <h2>👥 用户系统测试</h2>
+            <div id="userSystemStatus">未测试</div>
+            <button onclick="testUserSystem()">测试用户系统</button>
+        </div>
+
+        <div class="test-section">
+            <h2>🎯 完整功能测试</h2>
+            <div id="fullTestStatus">未测试</div>
+            <button onclick="runFullTest()">运行完整测试</button>
+        </div>
+
+        <div class="test-section">
+            <h2>🔧 修复建议</h2>
+            <div id="fixSuggestions">等待测试完成...</div>
+        </div>
+    </div>
+
+    <script>
+        let supabase;
+        let testResults = {};
+
+        // 初始化 Supabase 连接
+        function initSupabase() {
+            try {
+                if (typeof SUPABASE_CONFIG === 'undefined') {
+                    throw new Error('SUPABASE_CONFIG 未定义，请检查 supabase-config.js 文件');
+                }
+                
+                supabase = window.supabase.createClient(
+                    SUPABASE_CONFIG.url,
+                    SUPABASE_CONFIG.anonKey
+                );
+                
+                return true;
+            } catch (error) {
+                console.error('初始化 Supabase 失败:', error);
+                return false;
+            }
+        }
+
+        // 显示测试结果
+        function showResult(elementId, success, message, details = null) {
+            const element = document.getElementById(elementId);
+            const statusClass = success ? 'success' : 'error';
+            const statusIcon = success ? '✅' : '❌';
+            
+            let html = `<div class="test-result ${statusClass}">
+                ${statusIcon} ${message}
+            </div>`;
+            
+            if (details) {
+                html += `<div class="json-display">${JSON.stringify(details, null, 2)}</div>`;
+            }
+            
+            element.innerHTML = html;
+            testResults[elementId] = { success, message, details };
+        }
+
+        // 测试数据库连接
+        async function testConnection() {
+            const statusElement = document.getElementById('connectionStatus');
+            statusElement.innerHTML = '<div class="test-result info">🔄 正在测试连接...</div>';
+            
+            try {
+                if (!initSupabase()) {
+                    throw new Error('无法初始化 Supabase 客户端');
+                }
+
+                // 测试简单查询
+                const { data, error } = await supabase
+                    .from('settings')
+                    .select('count')
+                    .limit(1);
+
+                if (error) {
+                    throw error;
+                }
+
+                showResult('connectionStatus', true, '数据库连接成功', {
+                    url: SUPABASE_CONFIG.url,
+                    status: '已连接',
+                    timestamp: new Date().toISOString()
+                });
+
+            } catch (error) {
+                showResult('connectionStatus', false, `连接失败: ${error.message}`, {
+                    error: error.message,
+                    config: SUPABASE_CONFIG ? 'loaded' : 'missing'
+                });
+            }
+        }
+
+        // 检查表结构
+        async function checkTables() {
+            const statusElement = document.getElementById('tableStatus');
+            statusElement.innerHTML = '<div class="test-result info">🔄 正在检查表结构...</div>';
+            
+            try {
+                const requiredTables = ['users', 'settings', 'knowledge', 'draw_history', 'announcements', 'product_knowledge'];
+                const tableResults = {};
+                
+                for (const table of requiredTables) {
+                    try {
+                        const { data, error } = await supabase
+                            .from(table)
+                            .select('*')
+                            .limit(1);
+                        
+                        if (error) {
+                            tableResults[table] = { exists: false, error: error.message };
+                        } else {
+                            tableResults[table] = { exists: true, hasData: data && data.length > 0 };
+                        }
+                    } catch (err) {
+                        tableResults[table] = { exists: false, error: err.message };
+                    }
+                }
+                
+                const allTablesExist = Object.values(tableResults).every(result => result.exists);
+                
+                showResult('tableStatus', allTablesExist, 
+                    allTablesExist ? '所有必需表都存在' : '部分表缺失或无法访问', 
+                    tableResults);
+
+            } catch (error) {
+                showResult('tableStatus', false, `表结构检查失败: ${error.message}`);
+            }
+        }
+
+        // 检查视图和函数
+        async function checkViewsAndFunctions() {
+            const statusElement = document.getElementById('viewFunctionStatus');
+            statusElement.innerHTML = '<div class="test-result info">🔄 正在检查视图和函数...</div>';
+            
+            try {
+                const results = {};
+                
+                // 测试用户统计视图
+                try {
+                    const { data, error } = await supabase
+                        .from('user_stats_view')
+                        .select('*')
+                        .limit(1);
+                    
+                    results.user_stats_view = error ? { exists: false, error: error.message } : { exists: true, data };
+                } catch (err) {
+                    results.user_stats_view = { exists: false, error: err.message };
+                }
+                
+                // 测试抽奖统计视图
+                try {
+                    const { data, error } = await supabase
+                        .from('draw_stats_view')
+                        .select('*')
+                        .limit(1);
+                    
+                    results.draw_stats_view = error ? { exists: false, error: error.message } : { exists: true, data };
+                } catch (err) {
+                    results.draw_stats_view = { exists: false, error: err.message };
+                }
+                
+                // 测试系统健康检查函数
+                try {
+                    const { data, error } = await supabase
+                        .rpc('system_health_check');
+                    
+                    results.system_health_check = error ? { exists: false, error: error.message } : { exists: true, data };
+                } catch (err) {
+                    results.system_health_check = { exists: false, error: err.message };
+                }
+                
+                const allExist = Object.values(results).every(result => result.exists);
+                
+                showResult('viewFunctionStatus', allExist, 
+                    allExist ? '所有视图和函数都正常' : '部分视图或函数缺失', 
+                    results);
+
+            } catch (error) {
+                showResult('viewFunctionStatus', false, `视图和函数检查失败: ${error.message}`);
+            }
+        }
+
+        // 检查设置数据
+        async function checkSettings() {
+            const statusElement = document.getElementById('settingsStatus');
+            statusElement.innerHTML = '<div class="test-result info">🔄 正在检查设置数据...</div>';
+            
+            try {
+                const { data, error } = await supabase
+                    .from('settings')
+                    .select('key, content, category')
+                    .order('key');
+                
+                if (error) {
+                    throw error;
+                }
+                
+                const requiredSettings = ['app_name', 'lottery_config', 'prizes_config', 'max_draw_chances'];
+                const missingSettings = requiredSettings.filter(key => 
+                    !data.some(setting => setting.key === key)
+                );
+                
+                const allSettingsExist = missingSettings.length === 0;
+                
+                showResult('settingsStatus', allSettingsExist, 
+                    allSettingsExist ? `找到 ${data.length} 个设置项` : `缺少 ${missingSettings.length} 个必需设置`, 
+                    { 
+                        total: data.length, 
+                        missing: missingSettings,
+                        settings: data.map(s => ({ key: s.key, category: s.category, hasContent: !!s.content }))
+                    });
+
+            } catch (error) {
+                showResult('settingsStatus', false, `设置数据检查失败: ${error.message}`);
+            }
+        }
+
+        // 测试用户系统
+        async function testUserSystem() {
+            const statusElement = document.getElementById('userSystemStatus');
+            statusElement.innerHTML = '<div class="test-result info">🔄 正在测试用户系统...</div>';
+            
+            try {
+                const results = {};
+                
+                // 测试用户表查询
+                const { data: users, error: usersError } = await supabase
+                    .from('users')
+                    .select('count')
+                    .limit(1);
+                
+                results.users_query = usersError ? { success: false, error: usersError.message } : { success: true };
+                
+                // 测试用户统计
+                if (testResults.viewFunctionStatus && testResults.viewFunctionStatus.success) {
+                    const { data: stats, error: statsError } = await supabase
+                        .from('user_stats_view')
+                        .select('*');
+                    
+                    results.user_stats = statsError ? { success: false, error: statsError.message } : { success: true, data: stats };
+                } else {
+                    results.user_stats = { success: false, error: '用户统计视图不可用' };
+                }
+                
+                const allSuccess = Object.values(results).every(result => result.success);
+                
+                showResult('userSystemStatus', allSuccess, 
+                    allSuccess ? '用户系统功能正常' : '用户系统存在问题', 
+                    results);
+
+            } catch (error) {
+                showResult('userSystemStatus', false, `用户系统测试失败: ${error.message}`);
+            }
+        }
+
+        // 运行完整测试
+        async function runFullTest() {
+            const statusElement = document.getElementById('fullTestStatus');
+            statusElement.innerHTML = '<div class="test-result info">🔄 正在运行完整测试...</div>';
+            
+            try {
+                // 依次运行所有测试
+                await testConnection();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await checkTables();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await checkViewsAndFunctions();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await checkSettings();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await testUserSystem();
+                
+                // 汇总结果
+                const allTests = Object.values(testResults);
+                const successCount = allTests.filter(test => test.success).length;
+                const totalCount = allTests.length;
+                
+                const allPassed = successCount === totalCount;
+                
+                showResult('fullTestStatus', allPassed, 
+                    `测试完成: ${successCount}/${totalCount} 项通过`, 
+                    { 
+                        passed: successCount, 
+                        total: totalCount, 
+                        success_rate: `${Math.round((successCount / totalCount) * 100)}%` 
+                    });
+                
+                // 生成修复建议
+                generateFixSuggestions();
+
+            } catch (error) {
+                showResult('fullTestStatus', false, `完整测试失败: ${error.message}`);
+            }
+        }
+
+        // 生成修复建议
+        function generateFixSuggestions() {
+            const suggestionsElement = document.getElementById('fixSuggestions');
+            const suggestions = [];
+            
+            // 检查连接问题
+            if (testResults.connectionStatus && !testResults.connectionStatus.success) {
+                suggestions.push({
+                    priority: 'high',
+                    issue: '数据库连接失败',
+                    solution: '1. 检查 supabase-config.js 中的 URL 和 API Key\n2. 确认 Supabase 项目状态\n3. 检查网络连接'
+                });
+            }
+            
+            // 检查表结构问题
+            if (testResults.tableStatus && !testResults.tableStatus.success) {
+                suggestions.push({
+                    priority: 'high',
+                    issue: '数据库表缺失',
+                    solution: '在 Supabase SQL Editor 中执行 database-verification-fix.sql 脚本'
+                });
+            }
+            
+            // 检查视图和函数问题
+            if (testResults.viewFunctionStatus && !testResults.viewFunctionStatus.success) {
+                suggestions.push({
+                    priority: 'high',
+                    issue: '视图或函数缺失',
+                    solution: '在 Supabase SQL Editor 中执行 database-verification-fix.sql 脚本的视图和函数部分'
+                });
+            }
+            
+            // 检查设置数据问题
+            if (testResults.settingsStatus && !testResults.settingsStatus.success) {
+                suggestions.push({
+                    priority: 'medium',
+                    issue: '设置数据缺失',
+                    solution: '在 Supabase SQL Editor 中执行 supabase-complete-setup.sql 的数据插入部分'
+                });
+            }
+            
+            if (suggestions.length === 0) {
+                suggestionsElement.innerHTML = '<div class="test-result success">✅ 所有功能正常，无需修复</div>';
+            } else {
+                let html = '<div class="test-result warning">⚠️ 发现以下问题需要修复:</div>';
+                suggestions.forEach((suggestion, index) => {
+                    const priorityColor = suggestion.priority === 'high' ? '#dc3545' : '#ffc107';
+                    html += `
+                        <div class="test-result" style="border-left: 4px solid ${priorityColor};">
+                            <strong>${index + 1}. ${suggestion.issue}</strong><br>
+                            <div style="margin-top: 8px; white-space: pre-line;">${suggestion.solution}</div>
+                        </div>
+                    `;
+                });
+                suggestionsElement.innerHTML = html;
+            }
+        }
+
+        // 页面加载时自动测试连接
+        window.addEventListener('load', function() {
+            setTimeout(testConnection, 1000);
+        });
+    </script>
+</body>
+</html>

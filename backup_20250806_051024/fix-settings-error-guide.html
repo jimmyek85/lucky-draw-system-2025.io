@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>设置操作测试错误修复指导</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.1em;
+        }
+
+        .error-info {
+            background: #fff5f5;
+            border: 2px solid #fed7d7;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .error-info h2 {
+            color: #e53e3e;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .error-info .error-message {
+            background: #f7fafc;
+            border-left: 4px solid #e53e3e;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            color: #2d3748;
+        }
+
+        .solution-section {
+            background: #f0fff4;
+            border: 2px solid #9ae6b4;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .solution-section h2 {
+            color: #38a169;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .steps {
+            list-style: none;
+            counter-reset: step-counter;
+        }
+
+        .steps li {
+            counter-increment: step-counter;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #38a169;
+            position: relative;
+        }
+
+        .steps li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: -15px;
+            top: 15px;
+            background: #38a169;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .sql-script {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            overflow-x: auto;
+            position: relative;
+        }
+
+        .copy-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #4299e1;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s;
+        }
+
+        .copy-button:hover {
+            background: #3182ce;
+        }
+
+        .copy-button.copied {
+            background: #38a169;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 30px 0;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: #4299e1;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #3182ce;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #38a169;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #2f855a;
+            transform: translateY(-2px);
+        }
+
+        .progress-bar {
+            background: #e2e8f0;
+            border-radius: 10px;
+            height: 20px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #38a169, #48bb78);
+            height: 100%;
+            width: 0%;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .verification-section {
+            background: #ebf8ff;
+            border: 2px solid #90cdf4;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+
+        .verification-section h3 {
+            color: #2b6cb0;
+            margin-bottom: 15px;
+        }
+
+        .verification-list {
+            list-style: none;
+        }
+
+        .verification-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #bee3f8;
+        }
+
+        .verification-list li:last-child {
+            border-bottom: none;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .status-pending {
+            background: #fbb6ce;
+        }
+
+        .status-success {
+            background: #9ae6b4;
+        }
+
+        .cause-analysis {
+            background: #fffaf0;
+            border: 2px solid #fbd38d;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .cause-analysis h2 {
+            color: #c05621;
+            margin-bottom: 15px;
+        }
+
+        .cause-list {
+            list-style: none;
+        }
+
+        .cause-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid #fed7aa;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .cause-list li:last-child {
+            border-bottom: none;
+        }
+
+        .cause-icon {
+            color: #c05621;
+            font-weight: bold;
+            margin-top: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 设置操作测试错误修复</h1>
+            <p>解决 "Cannot read properties of undefined (reading 'content')" 错误</p>
+        </div>
+
+        <div class="error-info">
+            <h2>❌ 错误信息</h2>
+            <div class="error-message">
+                Cannot read properties of undefined (reading 'content')
+            </div>
+            <p><strong>错误位置：</strong>system-test.html - 设置操作测试</p>
+            <p><strong>错误原因：</strong>尝试访问不存在的设置项的 content 属性</p>
+        </div>
+
+        <div class="cause-analysis">
+            <h2>🔍 问题原因分析</h2>
+            <ul class="cause-list">
+                <li>
+                    <span class="cause-icon">1.</span>
+                    <div>
+                        <strong>设置项缺失：</strong>数据库中可能没有 'app_name' 设置项
+                    </div>
+                </li>
+                <li>
+                    <span class="cause-icon">2.</span>
+                    <div>
+                        <strong>数据库未初始化：</strong>可能没有执行完整的数据库设置脚本
+                    </div>
+                </li>
+                <li>
+                    <span class="cause-icon">3.</span>
+                    <div>
+                        <strong>数据结构问题：</strong>设置项存在但 content 字段为空或未定义
+                    </div>
+                </li>
+                <li>
+                    <span class="cause-icon">4.</span>
+                    <div>
+                        <strong>代码缺陷：</strong>前端代码没有正确处理空数据的情况
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+        <div class="solution-section">
+            <h2>✅ 解决方案</h2>
+            <ol class="steps">
+                <li>
+                    <strong>复制修复脚本</strong>
+                    <p>点击下方按钮复制 SQL 修复脚本</p>
+                </li>
+                <li>
+                    <strong>打开 Supabase SQL Editor</strong>
+                    <p>登录 Supabase 控制台，进入 SQL Editor</p>
+                </li>
+                <li>
+                    <strong>执行修复脚本</strong>
+                    <p>粘贴并执行 SQL 脚本，确保所有设置项存在</p>
+                </li>
+                <li>
+                    <strong>验证修复结果</strong>
+                    <p>重新运行 system-test.html 中的设置操作测试</p>
+                </li>
+            </ol>
+        </div>
+
+        <div class="sql-script">
+            <button class="copy-button" onclick="copyScript()">复制脚本</button>
+<pre id="sqlScript">-- =====================================================
+-- 修复设置操作测试错误
+-- =====================================================
+
+-- 1. 确保 app_name 设置存在
+INSERT INTO settings (key, content, description, category) VALUES
+('app_name', '1602 幸运轮盘', '应用名称', 'general')
+ON CONFLICT (key) DO UPDATE SET
+    content = EXCLUDED.content,
+    description = EXCLUDED.description,
+    category = EXCLUDED.category,
+    updated_at = NOW();
+
+-- 2. 确保其他必需设置存在
+INSERT INTO settings (key, content, description, category) VALUES
+('app_version', '1.0.0', '应用版本', 'general'),
+('max_draw_chances', '1', '每个用户最大抽奖次数', 'game'),
+('announcement', '欢迎参与1602幸运轮盘活动！', '公告内容', 'content'),
+('contact_info', 'support@1602.com', '联系信息', 'general'),
+('is_active', 'true', '活动是否激活', 'game')
+ON CONFLICT (key) DO UPDATE SET
+    content = EXCLUDED.content,
+    updated_at = NOW();
+
+-- 3. 验证设置项
+SELECT 
+    '✅ 设置项验证结果：' as 验证结果;
+
+SELECT 
+    key as 设置键,
+    content as 内容,
+    CASE 
+        WHEN content IS NOT NULL AND content != '' THEN '✅ 正常'
+        ELSE '❌ 异常'
+    END as 状态
+FROM settings 
+WHERE key IN ('app_name', 'app_version', 'max_draw_chances', 'announcement', 'contact_info', 'is_active')
+ORDER BY key;</pre>
+        </div>
+
+        <div class="action-buttons">
+            <button class="btn btn-primary" onclick="copyScript()">📋 复制修复脚本</button>
+            <a href="https://supabase.com" target="_blank" class="btn btn-success">🚀 打开 Supabase</a>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill">0% 完成</div>
+        </div>
+
+        <div class="verification-section">
+            <h3>🔍 修复后验证清单</h3>
+            <ul class="verification-list">
+                <li>
+                    <span class="status-indicator status-pending" id="status1"></span>
+                    执行 SQL 修复脚本
+                </li>
+                <li>
+                    <span class="status-indicator status-pending" id="status2"></span>
+                    确认设置项已创建
+                </li>
+                <li>
+                    <span class="status-indicator status-pending" id="status3"></span>
+                    重新运行设置操作测试
+                </li>
+                <li>
+                    <span class="status-indicator status-pending" id="status4"></span>
+                    验证测试通过
+                </li>
+            </ul>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
+            <p style="color: #7f8c8d;">
+                💡 <strong>提示：</strong>如果问题仍然存在，请检查 Supabase 连接配置和网络状态
+            </p>
+        </div>
+    </div>
+
+    <script>
+        function copyScript() {
+            const scriptElement = document.getElementById('sqlScript');
+            const textArea = document.createElement('textarea');
+            textArea.value = scriptElement.textContent;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            
+            const button = document.querySelector('.copy-button');
+            const originalText = button.textContent;
+            button.textContent = '已复制!';
+            button.classList.add('copied');
+            
+            setTimeout(() => {
+                button.textContent = originalText;
+                button.classList.remove('copied');
+            }, 2000);
+
+            updateProgress(25);
+        }
+
+        function updateProgress(percentage) {
+            const progressFill = document.getElementById('progressFill');
+            progressFill.style.width = percentage + '%';
+            progressFill.textContent = percentage + '% 完成';
+            
+            // 更新状态指示器
+            if (percentage >= 25) {
+                document.getElementById('status1').classList.remove('status-pending');
+                document.getElementById('status1').classList.add('status-success');
+            }
+            if (percentage >= 50) {
+                document.getElementById('status2').classList.remove('status-pending');
+                document.getElementById('status2').classList.add('status-success');
+            }
+            if (percentage >= 75) {
+                document.getElementById('status3').classList.remove('status-pending');
+                document.getElementById('status3').classList.add('status-success');
+            }
+            if (percentage >= 100) {
+                document.getElementById('status4').classList.remove('status-pending');
+                document.getElementById('status4').classList.add('status-success');
+            }
+        }
+
+        // 模拟进度更新（实际使用中可以根据用户操作更新）
+        let currentProgress = 0;
+        function simulateProgress() {
+            if (currentProgress < 100) {
+                currentProgress += 25;
+                updateProgress(currentProgress);
+            }
+        }
+
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('设置操作测试错误修复指导页面已加载');
+        });
+    </script>
+</body>
+</html>

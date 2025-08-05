@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>修复列名错误 - draw_stats_view</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .error-info {
+            background: #fff5f5;
+            border: 2px solid #fed7d7;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .error-info h3 {
+            color: #c53030;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .error-info p {
+            color: #2d3748;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .error-code {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+
+        .solution {
+            background: #f0fff4;
+            border: 2px solid #9ae6b4;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .solution h3 {
+            color: #22543d;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .copy-section {
+            background: #f7fafc;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .copy-button {
+            background: linear-gradient(135deg, #4299e1, #3182ce);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-bottom: 15px;
+        }
+
+        .copy-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(66, 153, 225, 0.3);
+        }
+
+        .copy-button.copied {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+        }
+
+        .sql-code {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            overflow-x: auto;
+            white-space: pre;
+            margin-top: 15px;
+        }
+
+        .steps {
+            background: #ebf8ff;
+            border: 2px solid #90cdf4;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .steps h3 {
+            color: #2c5282;
+            margin-bottom: 15px;
+        }
+
+        .steps ol {
+            color: #2d3748;
+            line-height: 1.8;
+            padding-left: 20px;
+        }
+
+        .steps li {
+            margin-bottom: 8px;
+        }
+
+        .highlight {
+            background: #fef5e7;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            color: #c05621;
+        }
+
+        .success-message {
+            background: #f0fff4;
+            border: 2px solid #68d391;
+            color: #22543d;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: center;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 修复列名错误</h1>
+            <p>解决 draw_stats_view 中的 created_at 列不存在问题</p>
+        </div>
+
+        <div class="content">
+            <div class="error-info">
+                <h3>❌ 错误信息</h3>
+                <p><strong>错误代码：</strong> 42703</p>
+                <p><strong>错误描述：</strong> column "created_at" does not exist</p>
+                <div class="error-code">ERROR: 42703: column "created_at" does not exist
+LINE 7:     COUNT(CASE WHEN created_at >= CURRENT_DATE THEN 1 END) as today_draws,
+                            ^</div>
+                <p><strong>问题原因：</strong> 在 <span class="highlight">draw_history</span> 表中，时间戳列名是 <span class="highlight">draw_date</span>，而不是 <span class="highlight">created_at</span></p>
+            </div>
+
+            <div class="solution">
+                <h3>✅ 解决方案</h3>
+                <p>需要重新创建 <span class="highlight">draw_stats_view</span> 视图，使用正确的列名 <span class="highlight">draw_date</span> 和 <span class="highlight">prize_won</span></p>
+                
+                <div class="copy-section">
+                    <button class="copy-button" onclick="copySQL()">📋 复制修复 SQL</button>
+                    <div class="sql-code" id="sqlCode">-- =====================================================
+-- 修复抽奖统计视图 - 解决列名错误问题
+-- =====================================================
+
+-- 1. 删除现有的错误视图
+DROP VIEW IF EXISTS draw_stats_view;
+
+-- 2. 创建正确的抽奖统计视图
+CREATE OR REPLACE VIEW draw_stats_view AS 
+SELECT 
+    COUNT(*) as total_draws, 
+    COUNT(DISTINCT user_phone) as unique_participants, 
+    COUNT(CASE WHEN prize_won != '谢谢参与' THEN 1 END) as winning_draws, 
+    COUNT(CASE WHEN draw_date >= CURRENT_DATE THEN 1 END) as today_draws, 
+    MAX(draw_date) as latest_draw, 
+    ROUND( 
+        COUNT(CASE WHEN prize_won != '谢谢参与' THEN 1 END)::DECIMAL / 
+        NULLIF(COUNT(*), 0) * 100, 2 
+    ) as win_rate 
+FROM draw_history;
+
+-- 3. 验证视图创建成功
+SELECT 'draw_stats_view 创建成功' as status;
+
+-- 4. 测试视图查询
+SELECT * FROM draw_stats_view;</div>
+                </div>
+            </div>
+
+            <div class="steps">
+                <h3>📋 执行步骤</h3>
+                <ol>
+                    <li>点击上方的 <span class="highlight">"📋 复制修复 SQL"</span> 按钮</li>
+                    <li>登录到你的 <span class="highlight">Supabase Dashboard</span></li>
+                    <li>进入 <span class="highlight">SQL Editor</span></li>
+                    <li>粘贴复制的 SQL 代码</li>
+                    <li>点击 <span class="highlight">"Run"</span> 执行</li>
+                    <li>确认看到 <span class="highlight">"draw_stats_view 创建成功"</span> 消息</li>
+                    <li>返回 <span class="highlight">system-test.html</span> 重新测试</li>
+                </ol>
+            </div>
+
+            <div class="error-info">
+                <h3>🔍 列名对照表</h3>
+                <p><strong>draw_history 表的正确列名：</strong></p>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li><span class="highlight">draw_date</span> - 抽奖时间（不是 created_at）</li>
+                    <li><span class="highlight">prize_won</span> - 中奖奖品（不是 prize_name）</li>
+                    <li><span class="highlight">user_phone</span> - 用户手机号</li>
+                    <li><span class="highlight">user_name</span> - 用户姓名</li>
+                </ul>
+            </div>
+
+            <div id="successMessage" class="success-message" style="display: none;">
+                ✅ SQL 代码已复制到剪贴板！现在可以去 Supabase SQL Editor 执行了。
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function copySQL() {
+            const sqlCode = document.getElementById('sqlCode').textContent;
+            const button = document.querySelector('.copy-button');
+            const successMessage = document.getElementById('successMessage');
+            
+            navigator.clipboard.writeText(sqlCode).then(function() {
+                button.textContent = '✅ 已复制！';
+                button.classList.add('copied');
+                successMessage.style.display = 'block';
+                
+                setTimeout(function() {
+                    button.textContent = '📋 复制修复 SQL';
+                    button.classList.remove('copied');
+                    successMessage.style.display = 'none';
+                }, 3000);
+            }).catch(function(err) {
+                console.error('复制失败: ', err);
+                alert('复制失败，请手动选择并复制 SQL 代码');
+            });
+        }
+
+        // 页面加载时显示动画
+        document.addEventListener('DOMContentLoaded', function() {
+            const container = document.querySelector('.container');
+            container.style.opacity = '0';
+            container.style.transform = 'translateY(30px)';
+            
+            setTimeout(function() {
+                container.style.transition = 'all 0.6s ease';
+                container.style.opacity = '1';
+                container.style.transform = 'translateY(0)';
+            }, 100);
+        });
+    </script>
+</body>
+</html>

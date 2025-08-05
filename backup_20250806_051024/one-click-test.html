@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1602 Lucky Draw - 一键测试</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .test-item {
+            transition: all 0.3s ease;
+        }
+        .test-item.testing {
+            background-color: rgba(59, 130, 246, 0.1);
+            border-left: 4px solid #3b82f6;
+        }
+        .test-item.success {
+            background-color: rgba(16, 185, 129, 0.1);
+            border-left: 4px solid #10b981;
+        }
+        .test-item.error {
+            background-color: rgba(239, 68, 68, 0.1);
+            border-left: 4px solid #ef4444;
+        }
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .status-pending { background-color: #6b7280; }
+        .status-testing { background-color: #3b82f6; animation: pulse 2s infinite; }
+        .status-success { background-color: #10b981; }
+        .status-error { background-color: #ef4444; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- 页面标题 -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-blue-400 mb-2">🎯 1602 Lucky Draw</h1>
+            <h2 class="text-2xl text-gray-300 mb-4">一键系统测试</h2>
+            <p class="text-gray-400">快速验证所有系统功能是否正常运行</p>
+        </div>
+
+        <!-- 测试控制面板 -->
+        <div class="bg-gray-800 rounded-lg p-6 mb-8">
+            <div class="flex flex-wrap gap-4 justify-center">
+                <button id="run-all-tests" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors">
+                    🚀 运行所有测试
+                </button>
+                <button id="test-database" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors">
+                    🗄️ 测试数据库
+                </button>
+                <button id="test-frontend" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors">
+                    🎯 测试前端
+                </button>
+                <button id="test-backend" class="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors">
+                    ⚙️ 测试后端
+                </button>
+                <button id="clear-results" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors">
+                    🗑️ 清除结果
+                </button>
+            </div>
+        </div>
+
+        <!-- 测试进度 -->
+        <div class="bg-gray-800 rounded-lg p-6 mb-8">
+            <h3 class="text-xl font-bold text-gray-300 mb-4">📊 测试进度</h3>
+            <div class="w-full bg-gray-700 rounded-full h-4 mb-4">
+                <div id="progress-bar" class="bg-blue-600 h-4 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+            <div class="flex justify-between text-sm text-gray-400">
+                <span id="progress-text">等待开始测试...</span>
+                <span id="progress-percentage">0%</span>
+            </div>
+        </div>
+
+        <!-- 测试结果 -->
+        <div class="space-y-4">
+            <!-- 数据库连接测试 -->
+            <div id="test-db-connection" class="test-item bg-gray-800 p-6 rounded-lg">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-blue-400">🔗 数据库连接测试</h3>
+                    <span class="status-dot status-pending"></span>
+                </div>
+                <div class="test-details text-sm text-gray-400">
+                    <div>测试 Supabase 数据库连接状态</div>
+                </div>
+                <div class="test-result mt-4 hidden"></div>
+            </div>
+
+            <!-- 数据表验证 -->
+            <div id="test-tables" class="test-item bg-gray-800 p-6 rounded-lg">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-green-400">📋 数据表验证</h3>
+                    <span class="status-dot status-pending"></span>
+                </div>
+                <div class="test-details text-sm text-gray-400">
+                    <div>验证所有必需的数据表是否存在</div>
+                </div>
+                <div class="test-result mt-4 hidden"></div>
+            </div>
+
+            <!-- 用户注册功能 -->
+            <div id="test-user-registration" class="test-item bg-gray-800 p-6 rounded-lg">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-purple-400">👤 用户注册功能</h3>
+                    <span class="status-dot status-pending"></span>
+                </div>
+                <div class="test-details text-sm text-gray-400">
+                    <div>测试用户注册和数据存储功能</div>
+                </div>
+                <div class="test-result mt-4 hidden"></div>
+            </div>
+
+            <!-- 抽奖系统 -->
+            <div id="test-lottery" class="test-item bg-gray-800 p-6 rounded-lg">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-yellow-400">🎲 抽奖系统</h3>
+                    <span class="status-dot status-pending"></span>
+                </div>
+                <div class="test-details text-sm text-gray-400">
+                    <div>测试抽奖逻辑和奖品配置</div>
+                </div>
+                <div class="test-result mt-4 hidden"></div>
+            </div>
+
+            <!-- 管理后台 -->
+            <div id="test-admin" class="test-item bg-gray-800 p-6 rounded-lg">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-orange-400">⚙️ 管理后台</h3>
+                    <span class="status-dot status-pending"></span>
+                </div>
+                <div class="test-details text-sm text-gray-400">
+                    <div>测试管理功能和数据查询</div>
+                </div>
+                <div class="test-result mt-4 hidden"></div>
+            </div>
+
+            <!-- 实时功能 -->
+            <div id="test-realtime" class="test-item bg-gray-800 p-6 rounded-lg">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-pink-400">📡 实时功能</h3>
+                    <span class="status-dot status-pending"></span>
+                </div>
+                <div class="test-details text-sm text-gray-400">
+                    <div>测试实时数据同步和订阅</div>
+                </div>
+                <div class="test-result mt-4 hidden"></div>
+            </div>
+        </div>
+
+        <!-- 测试总结 -->
+        <div id="test-summary" class="bg-gray-800 rounded-lg p-6 mt-8 hidden">
+            <h3 class="text-xl font-bold text-gray-300 mb-4">📊 测试总结</h3>
+            <div id="summary-content" class="space-y-2"></div>
+        </div>
+
+        <!-- 快速访问链接 -->
+        <div class="bg-gray-800 rounded-lg p-6 mt-8">
+            <h3 class="text-xl font-bold text-gray-300 mb-4">🔗 快速访问</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <a href="index.html" target="_blank" class="bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-lg text-center transition-colors">
+                    <div class="text-2xl mb-2">🎯</div>
+                    <div class="font-semibold">用户前端</div>
+                </a>
+                <a href="admin.html" target="_blank" class="bg-purple-600 hover:bg-purple-700 text-white p-4 rounded-lg text-center transition-colors">
+                    <div class="text-2xl mb-2">⚙️</div>
+                    <div class="font-semibold">管理后台</div>
+                </a>
+                <a href="system-ready-check.html" target="_blank" class="bg-green-600 hover:bg-green-700 text-white p-4 rounded-lg text-center transition-colors">
+                    <div class="text-2xl mb-2">🔧</div>
+                    <div class="font-semibold">系统检查</div>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载必要的脚本 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="enhanced-supabase-connection.js"></script>
+
+    <script>
+        // 测试状态管理
+        const testState = {
+            total: 6,
+            completed: 0,
+            passed: 0,
+            failed: 0,
+            results: {}
+        };
+
+        // 测试项目配置
+        const testItems = [
+            { id: 'test-db-connection', name: '数据库连接测试', func: testDatabaseConnection },
+            { id: 'test-tables', name: '数据表验证', func: testTables },
+            { id: 'test-user-registration', name: '用户注册功能', func: testUserRegistration },
+            { id: 'test-lottery', name: '抽奖系统', func: testLottery },
+            { id: 'test-admin', name: '管理后台', func: testAdmin },
+            { id: 'test-realtime', name: '实时功能', func: testRealtime }
+        ];
+
+        // 更新测试状态
+        function updateTestStatus(testId, status, message = '') {
+            const testElement = document.getElementById(testId);
+            const statusDot = testElement.querySelector('.status-dot');
+            const resultDiv = testElement.querySelector('.test-result');
+
+            // 更新状态样式
+            testElement.className = `test-item bg-gray-800 p-6 rounded-lg ${status}`;
+            statusDot.className = `status-dot status-${status}`;
+
+            // 显示结果
+            if (message) {
+                resultDiv.innerHTML = `<div class="text-sm ${status === 'success' ? 'text-green-400' : status === 'error' ? 'text-red-400' : 'text-blue-400'}">${message}</div>`;
+                resultDiv.classList.remove('hidden');
+            }
+
+            // 更新进度
+            if (status === 'success' || status === 'error') {
+                testState.completed++;
+                if (status === 'success') testState.passed++;
+                if (status === 'error') testState.failed++;
+                
+                const percentage = Math.round((testState.completed / testState.total) * 100);
+                document.getElementById('progress-bar').style.width = `${percentage}%`;
+                document.getElementById('progress-percentage').textContent = `${percentage}%`;
+                document.getElementById('progress-text').textContent = 
+                    `已完成 ${testState.completed}/${testState.total} 项测试`;
+
+                // 如果所有测试完成，显示总结
+                if (testState.completed === testState.total) {
+                    showTestSummary();
+                }
+            }
+        }
+
+        // 显示测试总结
+        function showTestSummary() {
+            const summaryElement = document.getElementById('test-summary');
+            const summaryContent = document.getElementById('summary-content');
+            
+            const successRate = Math.round((testState.passed / testState.total) * 100);
+            
+            summaryContent.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <span>总测试项目:</span>
+                    <span class="font-semibold">${testState.total}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span>通过测试:</span>
+                    <span class="font-semibold text-green-400">${testState.passed}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span>失败测试:</span>
+                    <span class="font-semibold text-red-400">${testState.failed}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span>成功率:</span>
+                    <span class="font-semibold ${successRate >= 80 ? 'text-green-400' : successRate >= 60 ? 'text-yellow-400' : 'text-red-400'}">${successRate}%</span>
+                </div>
+                <div class="mt-4 p-4 rounded-lg ${successRate >= 80 ? 'bg-green-900' : successRate >= 60 ? 'bg-yellow-900' : 'bg-red-900'}">
+                    <div class="font-semibold">
+                        ${successRate >= 80 ? '🎉 系统运行良好！' : successRate >= 60 ? '⚠️ 系统基本可用，建议检查失败项目' : '❌ 系统存在问题，需要修复'}
+                    </div>
+                </div>
+            `;
+            
+            summaryElement.classList.remove('hidden');
+        }
+
+        // 测试数据库连接
+        async function testDatabaseConnection() {
+            updateTestStatus('test-db-connection', 'testing', '正在测试数据库连接...');
+            
+            try {
+                const supabase = window.supabase.createClient(
+                    window.SUPABASE_CONFIG.SUPABASE_URL,
+                    window.SUPABASE_CONFIG.SUPABASE_ANON_KEY
+                );
+                
+                const startTime = Date.now();
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('count', { count: 'exact', head: true });
+                
+                const latency = Date.now() - startTime;
+                
+                if (error && error.code !== 'PGRST116') {
+                    throw error;
+                }
+                
+                updateTestStatus('test-db-connection', 'success', 
+                    `✅ 数据库连接成功 (延迟: ${latency}ms)`);
+                
+            } catch (error) {
+                updateTestStatus('test-db-connection', 'error', 
+                    `❌ 数据库连接失败: ${error.message}`);
+            }
+        }
+
+        // 测试数据表
+        async function testTables() {
+            updateTestStatus('test-tables', 'testing', '正在验证数据表...');
+            
+            try {
+                const supabase = window.supabase.createClient(
+                    window.SUPABASE_CONFIG.SUPABASE_URL,
+                    window.SUPABASE_CONFIG.SUPABASE_ANON_KEY
+                );
+                
+                const tables = ['users', 'settings', 'knowledge', 'prizes', 'announcements'];
+                const results = [];
+                
+                for (const table of tables) {
+                    try {
+                        const { data, error } = await supabase
+                            .from(table)
+                            .select('*')
+                            .limit(1);
+                        
+                        if (error && error.code !== 'PGRST116') {
+                            results.push(`❌ ${table}: ${error.message}`);
+                        } else {
+                            results.push(`✅ ${table}: 可访问`);
+                        }
+                    } catch (error) {
+                        results.push(`❌ ${table}: ${error.message}`);
+                    }
+                }
+                
+                const successCount = results.filter(r => r.includes('✅')).length;
+                
+                if (successCount >= tables.length * 0.8) {
+                    updateTestStatus('test-tables', 'success', 
+                        `✅ 数据表验证通过 (${successCount}/${tables.length})<br>${results.join('<br>')}`);
+                } else {
+                    updateTestStatus('test-tables', 'error', 
+                        `❌ 数据表验证失败<br>${results.join('<br>')}`);
+                }
+                
+            } catch (error) {
+                updateTestStatus('test-tables', 'error', 
+                    `❌ 数据表验证异常: ${error.message}`);
+            }
+        }
+
+        // 测试用户注册功能
+        async function testUserRegistration() {
+            updateTestStatus('test-user-registration', 'testing', '正在测试用户注册功能...');
+            
+            try {
+                const supabase = window.supabase.createClient(
+                    window.SUPABASE_CONFIG.SUPABASE_URL,
+                    window.SUPABASE_CONFIG.SUPABASE_ANON_KEY
+                );
+                
+                // 测试用户数据插入（模拟）
+                const testUser = {
+                    name: 'Test User',
+                    email: `test_${Date.now()}@example.com`,
+                    phone: '1234567890',
+                    company: 'Test Company'
+                };
+                
+                const { data, error } = await supabase
+                    .from('users')
+                    .insert([testUser])
+                    .select();
+                
+                if (error) {
+                    throw error;
+                }
+                
+                updateTestStatus('test-user-registration', 'success', 
+                    `✅ 用户注册功能正常，测试用户已创建`);
+                
+            } catch (error) {
+                updateTestStatus('test-user-registration', 'error', 
+                    `❌ 用户注册功能异常: ${error.message}`);
+            }
+        }
+
+        // 测试抽奖系统
+        async function testLottery() {
+            updateTestStatus('test-lottery', 'testing', '正在测试抽奖系统...');
+            
+            try {
+                const supabase = window.supabase.createClient(
+                    window.SUPABASE_CONFIG.SUPABASE_URL,
+                    window.SUPABASE_CONFIG.SUPABASE_ANON_KEY
+                );
+                
+                // 检查奖品配置
+                const { data: prizes, error: prizesError } = await supabase
+                    .from('prizes')
+                    .select('*')
+                    .eq('is_active', true);
+                
+                if (prizesError) {
+                    throw prizesError;
+                }
+                
+                if (!prizes || prizes.length === 0) {
+                    throw new Error('没有可用的奖品配置');
+                }
+                
+                updateTestStatus('test-lottery', 'success', 
+                    `✅ 抽奖系统正常，发现 ${prizes.length} 个可用奖品`);
+                
+            } catch (error) {
+                updateTestStatus('test-lottery', 'error', 
+                    `❌ 抽奖系统异常: ${error.message}`);
+            }
+        }
+
+        // 测试管理后台
+        async function testAdmin() {
+            updateTestStatus('test-admin', 'testing', '正在测试管理后台...');
+            
+            try {
+                // 检查管理页面是否可访问
+                const response = await fetch('admin.html', { method: 'HEAD' });
+                if (!response.ok) {
+                    throw new Error('管理页面无法访问');
+                }
+                
+                // 测试数据查询功能
+                const supabase = window.supabase.createClient(
+                    window.SUPABASE_CONFIG.SUPABASE_URL,
+                    window.SUPABASE_CONFIG.SUPABASE_SERVICE_ROLE_KEY || window.SUPABASE_CONFIG.SUPABASE_ANON_KEY
+                );
+                
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('count', { count: 'exact', head: true });
+                
+                if (error && error.code !== 'PGRST116') {
+                    throw error;
+                }
+                
+                updateTestStatus('test-admin', 'success', 
+                    `✅ 管理后台功能正常`);
+                
+            } catch (error) {
+                updateTestStatus('test-admin', 'error', 
+                    `❌ 管理后台异常: ${error.message}`);
+            }
+        }
+
+        // 测试实时功能
+        async function testRealtime() {
+            updateTestStatus('test-realtime', 'testing', '正在测试实时功能...');
+            
+            try {
+                const supabase = window.supabase.createClient(
+                    window.SUPABASE_CONFIG.SUPABASE_URL,
+                    window.SUPABASE_CONFIG.SUPABASE_ANON_KEY,
+                    {
+                        realtime: {
+                            params: {
+                                eventsPerSecond: 10
+                            }
+                        }
+                    }
+                );
+                
+                // 测试实时订阅
+                const channel = supabase
+                    .channel('test-channel')
+                    .on('postgres_changes', 
+                        { event: '*', schema: 'public', table: 'users' }, 
+                        (payload) => {
+                            console.log('实时数据变化:', payload);
+                        }
+                    );
+                
+                await channel.subscribe();
+                
+                // 等待一小段时间
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // 清理订阅
+                await channel.unsubscribe();
+                
+                updateTestStatus('test-realtime', 'success', 
+                    `✅ 实时功能正常`);
+                
+            } catch (error) {
+                updateTestStatus('test-realtime', 'error', 
+                    `❌ 实时功能异常: ${error.message}`);
+            }
+        }
+
+        // 运行所有测试
+        async function runAllTests() {
+            // 重置状态
+            testState.completed = 0;
+            testState.passed = 0;
+            testState.failed = 0;
+            
+            document.getElementById('test-summary').classList.add('hidden');
+            document.getElementById('progress-text').textContent = '开始运行测试...';
+            
+            // 依次运行所有测试
+            for (const test of testItems) {
+                await test.func();
+                // 添加小延迟，让用户看到进度
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+        }
+
+        // 清除测试结果
+        function clearResults() {
+            testState.completed = 0;
+            testState.passed = 0;
+            testState.failed = 0;
+            
+            testItems.forEach(test => {
+                const testElement = document.getElementById(test.id);
+                const statusDot = testElement.querySelector('.status-dot');
+                const resultDiv = testElement.querySelector('.test-result');
+                
+                testElement.className = 'test-item bg-gray-800 p-6 rounded-lg';
+                statusDot.className = 'status-dot status-pending';
+                resultDiv.classList.add('hidden');
+            });
+            
+            document.getElementById('progress-bar').style.width = '0%';
+            document.getElementById('progress-percentage').textContent = '0%';
+            document.getElementById('progress-text').textContent = '等待开始测试...';
+            document.getElementById('test-summary').classList.add('hidden');
+        }
+
+        // 绑定事件监听器
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('run-all-tests').addEventListener('click', runAllTests);
+            document.getElementById('test-database').addEventListener('click', () => {
+                testDatabaseConnection();
+                testTables();
+            });
+            document.getElementById('test-frontend').addEventListener('click', () => {
+                testUserRegistration();
+                testLottery();
+            });
+            document.getElementById('test-backend').addEventListener('click', () => {
+                testAdmin();
+                testRealtime();
+            });
+            document.getElementById('clear-results').addEventListener('click', clearResults);
+        });
+    </script>
+</body>
+</html>

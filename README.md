@@ -1,219 +1,105 @@
-# 🎯 1602幸运轮盘抽奖系统
+# 🎯 1602 Lucky Draw - 幸运抽奖系统
 
-一个功能完整的Web端幸运轮盘抽奖应用，集成Supabase云数据库和AI智能功能。
+一个功能完整的在线抽奖系统，支持用户注册、抽奖、奖品管理和数据统计。
 
-## ✨ 主要功能
+## 🌟 系统特色
 
-### 🎮 前端功能
-- **幸运轮盘抽奖**：流畅的动画效果和音效
-- **用户注册系统**：姓名、电话号码注册
-- **实时数据同步**：与云数据库实时同步
-- **多语言支持**：中文/英文界面切换
-- **响应式设计**：支持桌面和移动设备
-- **离线功能**：网络断开时本地存储数据
+### ✨ 核心功能
+- **用户注册系统** - 支持姓名、邮箱、电话、公司信息收集
+- **智能抽奖引擎** - 基于概率的公平抽奖算法
+- **实时数据同步** - 使用 Supabase 实时数据库
+- **管理后台** - 完整的数据统计和管理功能
+- **响应式设计** - 支持桌面和移动设备
 
-### 🛠️ 后台管理
-- **用户管理**：查看、搜索、添加用户
-- **数据统计**：用户参与分析和奖品统计
-- **AI数据分析**：智能生成活动报告
-- **实时监控**：用户活动实时更新
-- **批量操作**：导出用户数据、批量管理
-
-### 🤖 AI集成功能
-- **智能推荐**：基于用户行为的个性化推荐
-- **数据分析**：AI驱动的活动效果分析
-- **自动化报告**：智能生成活动总结报告
+### 🛡️ 技术特性
+- **云端数据库** - Supabase PostgreSQL 数据库
+- **增强连接管理** - 自动重连、心跳检测、错误恢复
+- **网络韧性** - 支持离线缓存和网络恢复
+- **安全防护** - 行级安全策略 (RLS) 和数据验证
+- **性能优化** - 连接池管理和查询优化
 
 ## 🚀 快速开始
 
-### 环境要求
-- 现代浏览器（Chrome、Firefox、Safari、Edge）
-- Python 3.x（用于本地开发服务器）
-- Supabase账户（用于云数据库）
-- Gemini API密钥（用于AI功能）
-
-### 安装步骤
-
-1. **克隆项目**
+### 1. 启动本地服务器
 ```bash
-git clone https://github.com/Global1602/luckydraw2025.git
-cd luckydraw2025
-```
-
-2. **配置Supabase**
-   - 创建Supabase项目
-   - 执行 `supabase-complete-setup.sql` 脚本
-   - 更新 `supabase-config.js` 中的配置
-
-3. **启动本地服务器**
-```bash
+# 在项目目录下运行
 python -m http.server 8000
+
+# 或使用 Node.js
+npx http-server -p 8000
 ```
 
-4. **访问应用**
-   - 主应用：`http://localhost:8000/index.html`
-   - 管理面板：`http://localhost:8000/admin.html`
+### 2. 配置数据库
+1. 按照 [数据库设置指南](SETUP_DATABASE.md) 配置 Supabase 数据库
+2. 确保 `supabase-config.js` 中的配置正确
 
-## 📁 项目结构
+### 3. 验证系统
+访问 [一键测试页面](http://localhost:8000/one-click-test.html) 运行完整测试
 
-```
-luckydraw2025/
-├── index.html                    # 主应用界面
-├── admin.html                    # 后台管理面板
-├── config.js                     # 基础配置
-├── supabase-config.js           # Supabase配置
-├── ai-features.js               # AI功能模块
-├── supabase-complete-setup.sql  # 数据库设置脚本
-├── favicon.ico                  # 网站图标
-├── .gitignore                   # Git忽略文件
-│
-├── 📚 文档/
-│   ├── README.md
-│   ├── SUPABASE_SETUP.md
-│   ├── GITHUB_DEPLOYMENT_GUIDE.md
-│   └── API_SETUP.md
-│
-├── 🛠️ 工具/
-│   ├── deploy-to-github.html
-│   ├── fix-data-connection.html
-│   ├── test-supabase-connection.html
-│   └── reconnect-supabase.html
-│
-└── 🧪 测试/
-    ├── test-user-registration.html
-    └── simple-connection-test.html
-```
+## 📱 页面导航
 
-## ⚙️ 配置说明
+### 🎯 用户端
+- **主页面**: [index.html](http://localhost:8000/index.html)
+  - 用户注册和抽奖功能
+  - 实时抽奖动画
+  - 中奖结果展示
 
-### Supabase配置
+### ⚙️ 管理端
+- **管理后台**: [admin.html](http://localhost:8000/admin.html)
+  - 用户数据统计
+  - 抽奖记录查看
+  - 系统设置管理
 
-1. 在 `supabase-config.js` 中设置：
-```javascript
-const SUPABASE_URL = 'your-supabase-url';
-const SUPABASE_ANON_KEY = 'your-supabase-anon-key';
-```
+### 🔧 系统工具
+- **一键测试**: [one-click-test.html](http://localhost:8000/one-click-test.html)
+  - 完整系统功能测试
+  - 数据库连接验证
+  - 性能监控
 
-2. 执行数据库设置脚本：
-   - 在Supabase SQL编辑器中运行 `supabase-complete-setup.sql`
+- **系统检查**: [system-ready-check.html](http://localhost:8000/system-ready-check.html)
+  - 系统状态监控
+  - 配置验证
+  - 健康检查
 
-### AI功能配置
+## 🎲 抽奖系统说明
 
-在 `ai-features.js` 中设置Gemini API密钥：
-```javascript
-const GEMINI_API_KEY = 'your-gemini-api-key';
-```
+### 奖品配置
+- **一等奖**: iPhone 15 Pro (0.01% 概率)
+- **二等奖**: iPad Air (0.05% 概率)
+- **三等奖**: AirPods Pro (0.1% 概率)
+- **四等奖**: 100元京东卡 (1% 概率)
+- **五等奖**: 50元京东卡 (5% 概率)
+- **六等奖**: 20元京东卡 (10% 概率)
+- **谢谢参与**: 83.84% 概率
 
-## 🌐 部署选项
+### 抽奖规则
+- 每个用户最多可抽奖 3 次
+- 实物奖品数量有限，先到先得
+- 虚拟奖品（京东卡）数量充足
+- 中奖后需在 7 个工作日内联系客服领取
 
-### GitHub Pages
-```bash
-# 推送到GitHub
-git add .
-git commit -m "Deploy to GitHub Pages"
-git push origin main
+## 🔧 技术架构
 
-# 在GitHub仓库设置中启用Pages
-```
+### 前端技术
+- **HTML5 + CSS3** - 现代化界面设计
+- **JavaScript ES6+** - 原生 JavaScript 开发
+- **Tailwind CSS** - 响应式样式框架
+- **Canvas API** - 抽奖转盘动画
 
-### Netlify
-1. 连接GitHub仓库
-2. 设置环境变量
-3. 自动部署
+### 后端服务
+- **Supabase** - 云端数据库和实时服务
+- **PostgreSQL** - 关系型数据库
+- **Row Level Security** - 数据安全策略
+- **Real-time Subscriptions** - 实时数据同步
 
-### Vercel
-1. 导入GitHub项目
-2. 配置环境变量
-3. 一键部署
+## 📞 技术支持
 
-## 🔧 开发工具
-
-项目包含多个开发和调试工具：
-
-- **deploy-to-github.html**：GitHub部署助手
-- **fix-data-connection.html**：数据连接修复工具
-- **test-supabase-connection.html**：Supabase连接测试
-- **debug-connection.html**：连接调试工具
-
-## 📊 数据库结构
-
-### users表
-```sql
-- id: UUID (主键)
-- name: TEXT (用户姓名)
-- phone: TEXT (电话号码)
-- email: TEXT (邮箱)
-- drawChances: INTEGER (抽奖次数)
-- joindate: TIMESTAMP (加入时间)
-- prizeswon: JSONB (获奖记录)
-```
-
-### settings表
-```sql
-- id: UUID (主键)
-- key: TEXT (设置键)
-- value: JSONB (设置值)
-- updated_at: TIMESTAMP (更新时间)
-```
-
-### knowledge表
-```sql
-- id: UUID (主键)
-- content: TEXT (知识内容)
-- category: TEXT (分类)
-- created_at: TIMESTAMP (创建时间)
-```
-
-## 🔒 安全特性
-
-- **RLS策略**：行级安全保护数据
-- **API密钥保护**：敏感信息环境变量化
-- **CORS配置**：跨域请求安全控制
-- **数据验证**：前后端双重数据验证
-
-## 🧪 测试
-
-运行测试工具验证功能：
-
-1. **连接测试**：`test-supabase-connection.html`
-2. **用户注册测试**：`test-user-registration.html`
-3. **数据同步测试**：`simple-connection-test.html`
-
-## 📈 性能优化
-
-- **CDN加速**：使用Tailwind CSS和字体CDN
-- **懒加载**：按需加载AI功能模块
-- **缓存策略**：本地存储优化
-- **数据库索引**：优化查询性能
-
-## 🤝 贡献指南
-
-1. Fork项目
-2. 创建功能分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 打开Pull Request
-
-## 📄 许可证
-
-本项目采用MIT许可证 - 查看 [LICENSE](LICENSE) 文件了解详情
-
-## 📞 支持
-
-如有问题或建议，请：
-
-- 创建 [Issue](https://github.com/Global1602/luckydraw2025/issues)
-- 发送邮件至项目维护者
-- 查看 [文档](docs/) 获取更多信息
-
-## 🎯 路线图
-
-- [ ] 移动端原生应用
-- [ ] 更多抽奖模式
-- [ ] 高级数据分析
-- [ ] 多租户支持
-- [ ] API接口开放
+### 常见问题
+1. **数据库连接失败** - 检查配置文件和网络连接
+2. **抽奖功能异常** - 验证奖品配置和概率设置
+3. **页面加载错误** - 确认所有文件路径正确
+4. **实时功能失效** - 检查 Supabase 实时服务状态
 
 ---
 
-**⭐ 如果这个项目对您有帮助，请给我们一个星标！**
+**🎉 感谢使用 1602 Lucky Draw 幸运抽奖系统！**

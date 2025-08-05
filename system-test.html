@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1602 幸运轮盘 - 系统测试</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            background: #f9f9f9;
+        }
+        .test-section h2 {
+            color: #555;
+            margin-bottom: 15px;
+        }
+        .test-button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        .test-button:hover {
+            background: #45a049;
+        }
+        .test-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-success { background: #28a745; }
+        .status-error { background: #dc3545; }
+        .status-warning { background: #ffc107; }
+        .status-info { background: #17a2b8; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 1602 幸运轮盘系统测试</h1>
+        
+        <div class="test-section">
+            <h2>📡 连接状态检查</h2>
+            <button class="test-button" onclick="testConnection()">测试 Supabase 连接</button>
+            <button class="test-button" onclick="testConfiguration()">检查配置</button>
+            <div id="connection-result" class="result"></div>
+        </div>
+
+        <div class="grid">
+            <div class="test-section">
+                <h2>👥 用户系统测试</h2>
+                <button class="test-button" onclick="testUserOperations()">测试用户操作</button>
+                <button class="test-button" onclick="getUserStats()">获取用户统计</button>
+                <div id="user-result" class="result"></div>
+            </div>
+
+            <div class="test-section">
+                <h2>⚙️ 设置系统测试</h2>
+                <button class="test-button" onclick="testSettingsOperations()">测试设置操作</button>
+                <button class="test-button" onclick="loadAllSettings()">加载所有设置</button>
+                <div id="settings-result" class="result"></div>
+            </div>
+
+            <div class="test-section">
+                <h2>📚 知识库测试</h2>
+                <button class="test-button" onclick="testKnowledgeOperations()">测试知识库操作</button>
+                <button class="test-button" onclick="loadAllKnowledge()">加载所有知识</button>
+                <div id="knowledge-result" class="result"></div>
+            </div>
+
+            <div class="test-section">
+                <h2>🎲 抽奖系统测试</h2>
+                <button class="test-button" onclick="testDrawOperations()">测试抽奖操作</button>
+                <button class="test-button" onclick="getDrawStats()">获取抽奖统计</button>
+                <div id="draw-result" class="result"></div>
+            </div>
+
+            <div class="test-section">
+                <h2>📢 公告系统测试</h2>
+                <button class="test-button" onclick="testAnnouncementOperations()">测试公告操作</button>
+                <button class="test-button" onclick="loadAllAnnouncements()">加载所有公告</button>
+                <div id="announcement-result" class="result"></div>
+            </div>
+
+            <div class="test-section">
+                <h2>🍺 产品知识库测试</h2>
+                <button class="test-button" onclick="testProductKnowledgeOperations()">测试产品知识库</button>
+                <button class="test-button" onclick="loadAllProducts()">加载所有产品</button>
+                <div id="product-result" class="result"></div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🔄 实时功能测试</h2>
+            <button class="test-button" onclick="testRealtimeSubscription()">测试实时订阅</button>
+            <button class="test-button" onclick="stopRealtimeSubscription()">停止实时订阅</button>
+            <div id="realtime-result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>📊 系统健康检查</h2>
+            <button class="test-button" onclick="runSystemHealthCheck()">运行健康检查</button>
+            <button class="test-button" onclick="runFullSystemTest()">运行完整系统测试</button>
+            <div id="health-result" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        let supabase;
+        let realtimeSubscription;
+
+        // 初始化 Supabase
+        async function initializeSupabase() {
+            try {
+                if (!window.SUPABASE_CONFIG) {
+                    throw new Error('Supabase 配置未找到');
+                }
+
+                supabase = window.supabase.createClient(
+                    window.SUPABASE_CONFIG.SUPABASE_URL,
+                    window.SUPABASE_CONFIG.SUPABASE_ANON_KEY
+                );
+
+                return true;
+            } catch (error) {
+                console.error('Supabase 初始化失败:', error);
+                return false;
+            }
+        }
+
+        // 显示结果
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.className = `result ${type}`;
+            element.textContent = message;
+        }
+
+        // 测试连接
+        async function testConnection() {
+            showResult('connection-result', '正在测试连接...', 'info');
+            
+            try {
+                const initialized = await initializeSupabase();
+                if (!initialized) {
+                    throw new Error('Supabase 初始化失败');
+                }
+
+                // 测试简单查询
+                const { data, error } = await supabase
+                    .from('settings')
+                    .select('count')
+                    .limit(1);
+
+                if (error) throw error;
+
+                showResult('connection-result', '✅ Supabase 连接成功！\n数据库响应正常', 'success');
+            } catch (error) {
+                showResult('connection-result', `❌ 连接失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 检查配置
+        async function testConfiguration() {
+            showResult('connection-result', '正在检查配置...', 'info');
+            
+            try {
+                const config = window.SUPABASE_CONFIG;
+                let result = '📋 配置检查结果:\n\n';
+                
+                result += `URL: ${config.SUPABASE_URL}\n`;
+                result += `URL 格式: ${config.SUPABASE_URL.includes('.supabase.co') ? '✅ 正确' : '❌ 错误'}\n`;
+                result += `API Key: ${config.SUPABASE_ANON_KEY ? '✅ 已配置' : '❌ 未配置'}\n`;
+                result += `Key 格式: ${config.SUPABASE_ANON_KEY.startsWith('eyJ') ? '✅ 正确' : '❌ 错误'}\n`;
+                result += `表配置: ${Object.keys(config.TABLES).length} 个表\n`;
+                result += `实时功能: ${config.REALTIME_CONFIG.ENABLED ? '✅ 启用' : '❌ 禁用'}\n`;
+
+                showResult('connection-result', result, 'success');
+            } catch (error) {
+                showResult('connection-result', `❌ 配置检查失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 测试用户操作
+        async function testUserOperations() {
+            showResult('user-result', '正在测试用户操作...', 'info');
+            
+            try {
+                await initializeSupabase();
+                
+                // 测试插入用户
+                const testUser = {
+                    name: '测试用户_' + Date.now(),
+                    phone: '+60' + Date.now(),
+                    email: 'test@example.com',
+                    address: '测试地址'
+                };
+
+                const { data: insertData, error: insertError } = await supabase
+                    .from('users')
+                    .insert([testUser])
+                    .select();
+
+                if (insertError) throw insertError;
+
+                // 测试查询用户
+                const { data: selectData, error: selectError } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('phone', testUser.phone);
+
+                if (selectError) throw selectError;
+
+                // 清理测试数据
+                await supabase
+                    .from('users')
+                    .delete()
+                    .eq('phone', testUser.phone);
+
+                showResult('user-result', `✅ 用户操作测试成功！\n插入用户: ${insertData[0].name}\n查询结果: ${selectData.length} 条记录`, 'success');
+            } catch (error) {
+                showResult('user-result', `❌ 用户操作测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 获取用户统计
+        async function getUserStats() {
+            showResult('user-result', '正在获取用户统计...', 'info');
+            
+            try {
+                await initializeSupabase();
+                
+                const { data, error } = await supabase
+                    .from('user_stats_view')
+                    .select('*');
+
+                if (error) throw error;
+
+                const stats = data[0];
+                let result = '📊 用户统计:\n\n';
+                result += `总用户数: ${stats.total_users}\n`;
+                result += `有抽奖机会的用户: ${stats.users_with_chances}\n`;
+                result += `已抽奖用户: ${stats.users_who_drew}\n`;
+                result += `总抽奖次数: ${stats.total_draws}\n`;
+                result += `中奖用户数: ${stats.winners_count}\n`;
+                result += `今日注册: ${stats.today_registrations}\n`;
+                result += `今日参与: ${stats.today_participants}`;
+
+                showResult('user-result', result, 'success');
+            } catch (error) {
+                showResult('user-result', `❌ 获取用户统计失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 测试设置操作
+        async function testSettingsOperations() {
+            showResult('settings-result', '正在测试设置操作...', 'info');
+            
+            try {
+                await initializeSupabase();
+                
+                // 测试读取设置
+                const { data: readData, error: readError } = await supabase
+                    .from('settings')
+                    .select('*')
+                    .eq('key', 'app_name');
+
+                if (readError) throw readError;
+
+                // 检查是否找到设置记录
+                if (!readData || readData.length === 0) {
+                    throw new Error('未找到 app_name 设置项，请先执行数据库初始化脚本');
+                }
+
+                // 检查设置记录是否有效
+                if (!readData[0] || readData[0].content === undefined) {
+                    throw new Error('app_name 设置项数据无效，content 字段缺失');
+                }
+
+                const originalValue = readData[0].content;
+
+                // 测试更新设置
+                const testValue = '测试应用_' + Date.now();
+                const { data: updateData, error: updateError } = await supabase
+                    .from('settings')
+                    .update({ content: testValue })
+                    .eq('key', 'app_name')
+                    .select();
+
+                if (updateError) throw updateError;
+
+                // 检查更新结果
+                if (!updateData || updateData.length === 0 || !updateData[0]) {
+                    throw new Error('设置更新失败，未返回有效数据');
+                }
+
+                // 恢复原值
+                const { error: restoreError } = await supabase
+                    .from('settings')
+                    .update({ content: originalValue })
+                    .eq('key', 'app_name');
+
+                if (restoreError) {
+                    console.warn('恢复原值时出现警告:', restoreError.message);
+                }
+
+                showResult('settings-result', `✅ 设置操作测试成功！\n原值: ${originalValue}\n测试值: ${updateData[0].content}\n已恢复原值`, 'success');
+            } catch (error) {
+                showResult('settings-result', `❌ 设置操作测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 加载所有设置
+        async function loadAllSettings() {
+            showResult('settings-result', '正在加载所有设置...', 'info');
+            
+            try {
+                await initializeSupabase();
+                
+                const { data, error } = await supabase
+                    .from('settings')
+                    .select('*')
+                    .order('key');
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    showResult('settings-result', '❌ 未找到任何设置项，请先执行数据库初始化脚本', 'error');
+                    return;
+                }
+
+                let result = `📋 设置列表 (${data.length} 项):\n\n`;
+                data.forEach(setting => {
+                    const content = setting.content || '(空值)';
+                    const displayContent = content.length > 50 ? content.substring(0, 50) + '...' : content;
+                    result += `${setting.key}: ${displayContent}\n`;
+                });
+
+                showResult('settings-result', result, 'success');
+            } catch (error) {
+                showResult('settings-result', `❌ 加载设置失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 测试知识库操作
+        async function testKnowledgeOperations() {
+            showResult('knowledge-result', '正在测试知识库操作...', 'info');
+            
+            try {
+                await initializeSupabase();
+                
+                const { data, error } = await supabase
+                    .from('knowledge')
+                    .select('*')
+                    .limit(5);
+
+                if (error) throw error;
+
+                showResult('knowledge-result', `✅ 知识库操作测试成功！\n找到 ${data.length} 条知识库记录`, 'success');
+            } catch (error) {
+                showResult('knowledge-result', `❌ 知识库操作测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 加载所有知识
+        async function loadAllKnowledge() {
+            showResult('knowledge-result', '正在加载所有知识...', 'info');
+            
+            try {
+                await initializeSupabase();
+                
+                const { data, error } = await supabase
+                    .from('knowledge')
+                    .select('*')
+                    .order('key');
+
+                if (error) throw error;
+
+                let result = `📚 知识库列表 (${data.length} 项):\n\n`;
+                data.forEach(item => {
+                    result += `${item.key}: ${item.title || '无标题'}\n`;
+                });
+
+                showResult('knowledge-result', result, 'success');
+            } catch (error) {
+                showResult('knowledge-result', `❌ 加载知识库失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 测试抽奖操作
+        async function testDrawOperations() {
+            showResult('draw-result', '正在测试抽奖操作...', 'info');
+            
+            try {
+                await initializeSupabase();
+                
+                const { data, error } = await supabase
+                    .from('draw_history')
+                    .select('*')
+                    .limit(5)
+                    .order('draw_date', { ascending: false });
+
+                if (error) throw error;
+
+                showResult('draw-result', `✅ 抽奖操作测试成功！\n最近 ${data.length} 条抽奖记录已加载`, 'success');
+            } catch (error) {
+                showResult('draw-result', `❌ 抽奖操作测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 获取抽奖统计
+        async function getDrawStats() {
+            showResult('draw-result', '正在获取抽奖统计...', 'info');
+            
+            try {
+                await initializeSupabase();
+                
+                const { data, error } = await supabase
+                    .from('draw_stats_view')
+                    .select('*');
+
+                if (error) throw error;
+
+                const stats = data[0];
+                let result = '🎲 抽奖统计:\n\n';
+                result += `总抽奖次数: ${stats.total_draws}\n`;
+                result += `今日抽奖: ${stats.today_draws}\n`;
+                result += `参与用户: ${stats.unique_participants}\n`;
+                result += `总中奖次数: ${stats.total_wins}\n`;
+                result += `今日中奖: ${stats.today_wins}`;
+
+                showResult('draw-result', result, 'success');
+            } catch (error) {
+                showResult('draw-result', `❌ 获取抽奖统计失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 测试公告操作
+        async function testAnnouncementOperations() {
+            showResult('announcement-result', '正在测试公告操作...', 'info');
+            
+            try {
+                await initializeSupabase();
+                
+                const { data, error } = await supabase
+                    .from('announcements')
+                    .select('*')
+                    .eq('is_active', true)
+                    .order('priority', { ascending: false });
+
+                if (error) throw error;
+
+                showResult('announcement-result', `✅ 公告操作测试成功！\n找到 ${data.length} 条活跃公告`, 'success');
+            } catch (error) {
+                showResult('announcement-result', `❌ 公告操作测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 加载所有公告
+        async function loadAllAnnouncements() {
+            showResult('announcement-result', '正在加载所有公告...', 'info');
+            
+            try {
+                await initializeSupabase();
+                
+                const { data, error } = await supabase
+                    .from('announcements')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                let result = `📢 公告列表 (${data.length} 项):\n\n`;
+                data.forEach(item => {
+                    result += `${item.title} (${item.is_active ? '活跃' : '非活跃'})\n`;
+                });
+
+                showResult('announcement-result', result, 'success');
+            } catch (error) {
+                showResult('announcement-result', `❌ 加载公告失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 测试产品知识库操作
+        async function testProductKnowledgeOperations() {
+            showResult('product-result', '正在测试产品知识库操作...', 'info');
+            
+            try {
+                await initializeSupabase();
+                
+                const { data, error } = await supabase
+                    .from('product_knowledge')
+                    .select('*')
+                    .eq('is_active', true);
+
+                if (error) throw error;
+
+                showResult('product-result', `✅ 产品知识库操作测试成功！\n找到 ${data.length} 条产品记录`, 'success');
+            } catch (error) {
+                showResult('product-result', `❌ 产品知识库操作测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 加载所有产品
+        async function loadAllProducts() {
+            showResult('product-result', '正在加载所有产品...', 'info');
+            
+            try {
+                await initializeSupabase();
+                
+                const { data, error } = await supabase
+                    .from('product_knowledge')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                let result = `🍺 产品列表 (${data.length} 项):\n\n`;
+                data.forEach(item => {
+                    result += `${item.title} - ${item.category} (${item.is_active ? '活跃' : '非活跃'})\n`;
+                });
+
+                showResult('product-result', result, 'success');
+            } catch (error) {
+                showResult('product-result', `❌ 加载产品失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 测试实时订阅
+        async function testRealtimeSubscription() {
+            showResult('realtime-result', '正在测试实时订阅...', 'info');
+            
+            try {
+                await initializeSupabase();
+                
+                realtimeSubscription = supabase
+                    .channel('test-channel')
+                    .on('postgres_changes', 
+                        { event: '*', schema: 'public', table: 'users' },
+                        (payload) => {
+                            showResult('realtime-result', `🔄 实时更新检测到:\n事件: ${payload.eventType}\n表: ${payload.table}\n时间: ${new Date().toLocaleString()}`, 'info');
+                        }
+                    )
+                    .subscribe();
+
+                showResult('realtime-result', '✅ 实时订阅已启动！\n监听用户表的变化...', 'success');
+            } catch (error) {
+                showResult('realtime-result', `❌ 实时订阅失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 停止实时订阅
+        async function stopRealtimeSubscription() {
+            if (realtimeSubscription) {
+                await supabase.removeChannel(realtimeSubscription);
+                realtimeSubscription = null;
+                showResult('realtime-result', '⏹️ 实时订阅已停止', 'info');
+            } else {
+                showResult('realtime-result', '⚠️ 没有活跃的实时订阅', 'info');
+            }
+        }
+
+        // 运行系统健康检查
+        async function runSystemHealthCheck() {
+            showResult('health-result', '正在运行系统健康检查...', 'info');
+            
+            try {
+                await initializeSupabase();
+                
+                const { data, error } = await supabase
+                    .rpc('system_health_check');
+
+                if (error) throw error;
+
+                let result = '🏥 系统健康检查结果:\n\n';
+                
+                // 检查 data 是否为数组
+                if (!data) {
+                    throw new Error('系统健康检查函数返回空数据');
+                }
+                
+                if (!Array.isArray(data)) {
+                    throw new Error(`系统健康检查函数返回的数据格式错误，期望数组但得到: ${typeof data}`);
+                }
+                
+                if (data.length === 0) {
+                    result += '⚠️ 没有检查项目返回\n';
+                } else {
+                    data.forEach(check => {
+                        // 确保 check 对象存在必要的属性
+                        if (!check || typeof check !== 'object') {
+                            result += '❌ 检查项格式错误\n';
+                            return;
+                        }
+                        
+                        const checkName = check.check_name || '未知检查项';
+                        const status = check.status || 'UNKNOWN';
+                        const details = check.details || '无详细信息';
+                        
+                        const statusIcon = status === 'OK' ? '✅' : 
+                                         status === 'WARNING' ? '⚠️' : 
+                                         status === 'ACTIVE' ? '🟢' : 
+                                         status === 'INFO' ? 'ℹ️' :
+                                         status === 'QUIET' ? '😴' : '📊';
+                        result += `${statusIcon} ${checkName}: ${status}\n   ${details}\n\n`;
+                    });
+                }
+
+                showResult('health-result', result, 'success');
+            } catch (error) {
+                console.error('系统健康检查详细错误:', error);
+                showResult('health-result', `❌ 系统健康检查失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 运行完整系统测试
+        async function runFullSystemTest() {
+            showResult('health-result', '正在运行完整系统测试...', 'info');
+            
+            try {
+                let result = '🔍 完整系统测试报告:\n\n';
+                
+                // 测试连接
+                await initializeSupabase();
+                result += '✅ Supabase 连接: 正常\n';
+                
+                // 测试各个表
+                const tables = ['users', 'settings', 'knowledge', 'draw_history', 'announcements', 'product_knowledge'];
+                for (const table of tables) {
+                    try {
+                        const { data, error } = await supabase
+                            .from(table)
+                            .select('count')
+                            .limit(1);
+                        
+                        if (error) throw error;
+                        result += `✅ ${table} 表: 可访问\n`;
+                    } catch (error) {
+                        result += `❌ ${table} 表: ${error.message}\n`;
+                    }
+                }
+                
+                // 测试视图
+                try {
+                    const { data, error } = await supabase
+                        .from('user_stats_view')
+                        .select('*');
+                    
+                    if (error) throw error;
+                    result += '✅ 用户统计视图: 正常\n';
+                } catch (error) {
+                    result += `❌ 用户统计视图: ${error.message}\n`;
+                }
+                
+                try {
+                    const { data, error } = await supabase
+                        .from('draw_stats_view')
+                        .select('*');
+                    
+                    if (error) throw error;
+                    result += '✅ 抽奖统计视图: 正常\n';
+                } catch (error) {
+                    result += `❌ 抽奖统计视图: ${error.message}\n`;
+                }
+                
+                // 测试函数
+                try {
+                    const { data, error } = await supabase
+                        .rpc('system_health_check');
+                    
+                    if (error) throw error;
+                    result += '✅ 系统函数: 正常\n';
+                } catch (error) {
+                    result += `❌ 系统函数: ${error.message}\n`;
+                }
+                
+                result += '\n🎉 完整系统测试完成！';
+                showResult('health-result', result, 'success');
+            } catch (error) {
+                showResult('health-result', `❌ 完整系统测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 页面加载时自动测试连接
+        window.addEventListener('load', () => {
+            setTimeout(testConnection, 1000);
+        });
+    </script>
+</body>
+</html>

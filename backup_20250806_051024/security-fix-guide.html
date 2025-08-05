@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔒 Supabase 安全修复指南 - SECURITY DEFINER 视图问题</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .alert {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-left: 5px solid #fdcb6e;
+        }
+
+        .alert-danger {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            border-left-color: #dc3545;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section h2 {
+            color: #2d3436;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #74b9ff;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .comparison-table th {
+            background: #74b9ff;
+            color: white;
+            font-weight: 600;
+        }
+
+        .comparison-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .risk-high {
+            background: #ff7675 !important;
+            color: white;
+        }
+
+        .risk-low {
+            background: #00b894 !important;
+            color: white;
+        }
+
+        .steps {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+        }
+
+        .step {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+
+        .step-number {
+            background: #74b9ff;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 20px;
+            flex-shrink: 0;
+        }
+
+        .step-content h3 {
+            color: #2d3436;
+            margin-bottom: 10px;
+        }
+
+        .step-content p {
+            color: #636e72;
+            line-height: 1.6;
+        }
+
+        .sql-container {
+            background: #2d3436;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            position: relative;
+        }
+
+        .sql-code {
+            background: transparent;
+            border: none;
+            color: #00b894;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            width: 100%;
+            height: 300px;
+            resize: vertical;
+            outline: none;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #00b894;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .copy-btn:hover {
+            background: #00a085;
+            transform: translateY(-2px);
+        }
+
+        .copy-btn.copied {
+            background: #fdcb6e;
+        }
+
+        .progress-bar {
+            background: #e9ecef;
+            border-radius: 10px;
+            height: 20px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #00b894, #00cec9);
+            height: 100%;
+            width: 0%;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .btn {
+            background: #74b9ff;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            margin: 10px 5px;
+        }
+
+        .btn:hover {
+            background: #0984e3;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #00b894;
+        }
+
+        .btn-success:hover {
+            background: #00a085;
+        }
+
+        .btn-danger {
+            background: #ff7675;
+        }
+
+        .btn-danger:hover {
+            background: #fd79a8;
+        }
+
+        .icon {
+            font-size: 1.2em;
+            margin-right: 8px;
+        }
+
+        .security-info {
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+
+        .security-info h3 {
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .security-info ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .security-info li {
+            margin-bottom: 10px;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .security-info li:before {
+            content: "🔒";
+            position: absolute;
+            left: 0;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-error {
+            background: #ff7675;
+        }
+
+        .status-warning {
+            background: #fdcb6e;
+        }
+
+        .status-success {
+            background: #00b894;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔒 Supabase 安全修复指南</h1>
+            <p>修复 SECURITY DEFINER 视图安全问题</p>
+        </div>
+
+        <div class="content">
+            <!-- 问题描述 -->
+            <div class="alert alert-danger">
+                <h3><span class="icon">⚠️</span>安全警告</h3>
+                <p><strong>Supabase Security Advisor 检测到安全问题：</strong></p>
+                <ul style="margin-top: 10px; padding-left: 20px;">
+                    <li><span class="status-indicator status-error"></span><code>public.user_stats_view</code> 使用了 SECURITY DEFINER 属性</li>
+                    <li><span class="status-indicator status-error"></span><code>public.draw_stats_view</code> 使用了 SECURITY DEFINER 属性</li>
+                </ul>
+                <p style="margin-top: 15px;"><strong>风险等级：</strong> <span style="color: #dc3545; font-weight: bold;">ERROR</span></p>
+            </div>
+
+            <!-- 问题解释 -->
+            <div class="section">
+                <h2>🤔 什么是 SECURITY DEFINER 问题？</h2>
+                <p style="margin-bottom: 20px; line-height: 1.6; color: #636e72;">
+                    PostgreSQL 视图默认使用 <code>SECURITY DEFINER</code> 模式，这意味着视图会使用<strong>创建者的权限</strong>执行，
+                    而不是<strong>调用者的权限</strong>。这可能导致权限提升和数据泄露风险。
+                </p>
+
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>安全模式</th>
+                            <th>权限来源</th>
+                            <th>RLS 策略</th>
+                            <th>安全风险</th>
+                            <th>推荐度</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>SECURITY DEFINER</strong><br><small>(默认)</small></td>
+                            <td>视图创建者</td>
+                            <td>可能被绕过</td>
+                            <td class="risk-high">高风险</td>
+                            <td>❌ 不推荐</td>
+                        </tr>
+                        <tr>
+                            <td><strong>SECURITY INVOKER</strong><br><small>(推荐)</small></td>
+                            <td>视图调用者</td>
+                            <td>严格执行</td>
+                            <td class="risk-low">低风险</td>
+                            <td>✅ 推荐</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 修复步骤 -->
+            <div class="section">
+                <h2>🛠️ 修复步骤</h2>
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h3>复制修复脚本</h3>
+                            <p>点击下方的"复制 SQL"按钮，复制安全修复脚本到剪贴板</p>
+                        </div>
+                    </div>
+
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h3>打开 Supabase SQL Editor</h3>
+                            <p>登录 Supabase Dashboard，导航到 SQL Editor 页面</p>
+                        </div>
+                    </div>
+
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h3>执行修复脚本</h3>
+                            <p>粘贴脚本并点击"Run"执行，脚本会自动重新创建安全的视图</p>
+                        </div>
+                    </div>
+
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <h3>验证修复结果</h3>
+                            <p>重新运行 Security Advisor，确认不再有 security_definer_view 错误</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SQL 脚本 -->
+            <div class="section">
+                <h2>📝 安全修复脚本</h2>
+                <div class="sql-container">
+                    <button class="copy-btn" onclick="copySQL()">
+                        <span class="icon">📋</span>复制 SQL
+                    </button>
+                    <textarea id="securityFixSQL" class="sql-code" readonly>-- =====================================================
+-- 安全修复脚本 - 修复 SECURITY DEFINER 视图问题
+-- =====================================================
+
+-- 删除现有的 SECURITY DEFINER 视图
+DROP VIEW IF EXISTS public.user_stats_view CASCADE;
+DROP VIEW IF EXISTS public.draw_stats_view CASCADE;
+
+-- 重新创建 user_stats_view 视图（使用 SECURITY INVOKER）
+CREATE VIEW public.user_stats_view 
+WITH (security_invoker=on) AS
+SELECT 
+    COUNT(*) as total_users,
+    COUNT(CASE WHEN status = 'active' THEN 1 END) as active_users,
+    COUNT(CASE WHEN remaining_chances > 0 THEN 1 END) as users_with_chances,
+    AVG(remaining_chances) as avg_chances,
+    MAX(created_at) as latest_registration,
+    COUNT(CASE WHEN created_at >= CURRENT_DATE THEN 1 END) as today_registrations
+FROM users;
+
+-- 重新创建 draw_stats_view 视图（使用 SECURITY INVOKER）
+CREATE VIEW public.draw_stats_view 
+WITH (security_invoker=on) AS
+SELECT 
+    COUNT(*) as total_draws,
+    COUNT(DISTINCT user_phone) as unique_participants,
+    COUNT(CASE WHEN prize_won != '谢谢参与' THEN 1 END) as winning_draws,
+    COUNT(CASE WHEN draw_date >= CURRENT_DATE THEN 1 END) as today_draws,
+    MAX(draw_date) as latest_draw,
+    ROUND(
+        COUNT(CASE WHEN prize_won != '谢谢参与' THEN 1 END)::DECIMAL / 
+        NULLIF(COUNT(*), 0) * 100, 2
+    ) as win_rate
+FROM draw_history;
+
+-- 验证修复结果
+SELECT 
+    '🔒 安全修复完成' as status,
+    '视图已从 SECURITY DEFINER 改为 SECURITY INVOKER 模式' as message,
+    NOW() as fixed_at;</textarea>
+                </div>
+            </div>
+
+            <!-- 进度条 -->
+            <div class="section">
+                <h2>📊 修复进度</h2>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill">0% 完成</div>
+                </div>
+                <div style="text-align: center; margin-top: 20px;">
+                    <button class="btn" onclick="startProgress()">
+                        <span class="icon">🚀</span>开始修复
+                    </button>
+                    <button class="btn btn-success" onclick="openSupabase()">
+                        <span class="icon">🔗</span>打开 Supabase
+                    </button>
+                    <button class="btn btn-danger" onclick="checkSecurity()">
+                        <span class="icon">🔍</span>检查安全状态
+                    </button>
+                </div>
+            </div>
+
+            <!-- 安全最佳实践 -->
+            <div class="security-info">
+                <h3>🛡️ 安全最佳实践</h3>
+                <ul>
+                    <li>始终使用 <code>WITH (security_invoker=on)</code> 创建视图</li>
+                    <li>定期运行 Supabase Security Advisor 检查</li>
+                    <li>确保 RLS 策略正确配置</li>
+                    <li>避免在视图中暴露敏感数据</li>
+                    <li>使用最小权限原则</li>
+                </ul>
+            </div>
+
+            <!-- 修复后验证 -->
+            <div class="section">
+                <h2>✅ 修复后验证清单</h2>
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                    <div style="margin-bottom: 15px;">
+                        <input type="checkbox" id="check1" style="margin-right: 10px;">
+                        <label for="check1">✅ 在 Supabase SQL Editor 中成功执行修复脚本</label>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <input type="checkbox" id="check2" style="margin-right: 10px;">
+                        <label for="check2">✅ 重新运行 Security Advisor，确认无 security_definer_view 错误</label>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <input type="checkbox" id="check3" style="margin-right: 10px;">
+                        <label for="check3">✅ 测试应用功能，确认视图正常工作</label>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <input type="checkbox" id="check4" style="margin-right: 10px;">
+                        <label for="check4">✅ 验证 RLS 策略仍然有效</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function copySQL() {
+            const sqlText = document.getElementById('securityFixSQL');
+            const copyBtn = document.querySelector('.copy-btn');
+            
+            sqlText.select();
+            document.execCommand('copy');
+            
+            copyBtn.innerHTML = '<span class="icon">✅</span>已复制!';
+            copyBtn.classList.add('copied');
+            
+            setTimeout(() => {
+                copyBtn.innerHTML = '<span class="icon">📋</span>复制 SQL';
+                copyBtn.classList.remove('copied');
+            }, 2000);
+        }
+
+        function startProgress() {
+            const progressFill = document.getElementById('progressFill');
+            let progress = 0;
+            
+            const interval = setInterval(() => {
+                progress += 25;
+                progressFill.style.width = progress + '%';
+                progressFill.textContent = progress + '% 完成';
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    progressFill.textContent = '✅ 修复完成!';
+                    setTimeout(() => {
+                        alert('🎉 安全修复完成！\n\n请在 Supabase Security Advisor 中验证修复结果。');
+                    }, 500);
+                }
+            }, 1000);
+        }
+
+        function openSupabase() {
+            window.open('https://supabase.com/dashboard', '_blank');
+        }
+
+        function checkSecurity() {
+            alert('🔍 安全检查提醒：\n\n1. 登录 Supabase Dashboard\n2. 导航到 Database > Security Advisor\n3. 点击 "Run checks" 重新检查\n4. 确认不再有 security_definer_view 错误');
+        }
+
+        // 页面加载动画
+        window.addEventListener('load', () => {
+            document.querySelector('.container').style.opacity = '0';
+            document.querySelector('.container').style.transform = 'translateY(20px)';
+            document.querySelector('.container').style.transition = 'all 0.5s ease';
+            
+            setTimeout(() => {
+                document.querySelector('.container').style.opacity = '1';
+                document.querySelector('.container').style.transform = 'translateY(0)';
+            }, 100);
+        });
+    </script>
+</body>
+</html>

@@ -252,15 +252,15 @@
 
 
     <!-- API Configuration -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <script src="supabase-config.js"></script>
+    <script src="enhanced-supabase-connection.js"></script>
     <script src="supabase-connection.js"></script>
     <script src="ai-features.js"></script>
     <script src="fix-connection.js"></script>
     <script src="fix-three-errors.js"></script>
     <script src="supabase-connection-fix.js"></script>
-    
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         // 浏览器兼容性检查
         if (!window.fetch) {
@@ -800,9 +800,9 @@
                     return { INITIAL_CHANCES: 1 };
                 }
 
-                if (data && data.value) {
+                if (data && data.content) {
                     try {
-                        return JSON.parse(data.value);
+                        return JSON.parse(data.content);
                     } catch (parseError) {
                         console.warn('配置数据格式错误，使用默认配置:', parseError);
                         return { INITIAL_CHANCES: 1 };
@@ -1084,13 +1084,13 @@
                 // 获取奖品配置
                 const { data: prizesData, error: prizesError } = await supabase
                     .from('settings')
-                    .select('value')
+                    .select('content')
                     .eq('key', 'prizes_config')
                     .single();
                 
-                if (prizesData && !prizesError && prizesData.value && prizesData.value.prizes) {
+                if (prizesData && !prizesError && prizesData.content && prizesData.content.prizes) {
                     // 更新奖品配置
-                    prizes = prizesData.value.prizes.map(prize => ({
+                    prizes = prizesData.content.prizes.map(prize => ({
                         text: prize.text || prize.name,
                         color: prize.color,
                         percentage: prize.percentage

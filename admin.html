@@ -39,8 +39,9 @@
 </head>
 <body class="bg-gray-900 text-white min-h-screen">
     <!-- 加载 Supabase 配置 - 确保与用户端统一 -->
-    <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="enhanced-supabase-connection.js"></script>
 
     <div class="container mx-auto px-4 py-8">
         <!-- 顶部导航 -->
@@ -710,15 +711,15 @@ Spend RM55 or more (based on one receipt), you can purchase 660ml bottles of cra
                 const simpleTextarea = document.getElementById('prizes-simple-config');
                 const jsonTextarea = document.getElementById('prizes-json-config');
                 
-                if (settings && settings.value) {
+                if (settings && settings.content) {
                     // 将JSON配置转换为简单格式
-                    const prizes = settings.value.prizes || settings.value;
+                    const prizes = settings.content.prizes || settings.content;
                     const simpleFormat = prizes.map(prize => 
                         `${prize.name || prize.text} ${(prize.percentage || prize.probability * 100)}%`
                     ).join('\n');
                     
                     simpleTextarea.value = simpleFormat;
-                    if (jsonTextarea) jsonTextarea.value = JSON.stringify(settings.value, null, 2);
+                    if (jsonTextarea) jsonTextarea.value = JSON.stringify(settings.content, null, 2);
                 } else {
                     // 默认奖品配置
                     const defaultSimpleConfig = `1602 Mug 1%
@@ -830,7 +831,7 @@ Thank You 18%`;
                     .from('settings')
                     .upsert({
                         key: 'prizes_config',
-                        value: config,
+                        content: config,
                         updated_at: new Date().toISOString()
                     });
 
@@ -1773,7 +1774,7 @@ Thank You 18%`;
                     .from('settings')
                     .upsert({
                         key: 'terms_conditions',
-                        value: content,
+                        content: content,
                         updated_at: new Date().toISOString()
                     });
 
@@ -1801,7 +1802,7 @@ Thank You 18%`;
                     .from('settings')
                     .upsert({
                         key: 'promotion_content',
-                        value: content,
+                        content: content,
                         updated_at: new Date().toISOString()
                     });
 
@@ -1821,23 +1822,23 @@ Thank You 18%`;
                 // 加载领奖条款
                 const { data: termsData, error: termsError } = await supabase
                     .from('settings')
-                    .select('value')
+                    .select('content')
                     .eq('key', 'terms_conditions')
                     .single();
 
                 if (!termsError && termsData) {
-                    document.getElementById('terms-content').value = termsData.value;
+                    document.getElementById('terms-content').value = termsData.content;
                 }
 
                 // 加载优惠套餐内容
                 const { data: promotionData, error: promotionError } = await supabase
                     .from('settings')
-                    .select('value')
+                    .select('content')
                     .eq('key', 'promotion_content')
                     .single();
 
                 if (!promotionError && promotionData) {
-                    document.getElementById('promotion-content').value = promotionData.value;
+                    document.getElementById('promotion-content').value = promotionData.content;
                 }
 
             } catch (error) {
@@ -1909,7 +1910,7 @@ Thank You 18%`;
                     .from('settings')
                     .upsert({
                         key: 'lottery_config',
-                        value: JSON.stringify(configData),
+                        content: JSON.stringify(configData),
                         updated_at: new Date().toISOString()
                     });
 
@@ -1932,7 +1933,7 @@ Thank You 18%`;
             try {
                 const { data, error } = await supabase
                     .from('settings')
-                    .select('value')
+                    .select('content')
                     .eq('key', 'lottery_config')
                     .single();
 
@@ -1946,9 +1947,9 @@ Thank You 18%`;
                     MAX_ACCUMULATED_CHANCES: 10
                 };
 
-                if (data && data.value) {
+                if (data && data.content) {
                     try {
-                        config = JSON.parse(data.value);
+                        config = JSON.parse(data.content);
                     } catch (parseError) {
                         addLog('⚠️ 配置数据格式错误，使用默认配置', 'warning');
                     }

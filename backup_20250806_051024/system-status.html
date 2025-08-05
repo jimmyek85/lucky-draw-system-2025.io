@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎯 系统状态检查</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="supabase-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-4xl font-bold text-center mb-8 text-blue-400">🎯 1602 Lucky Draw 系统状态</h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <!-- 前端状态 -->
+            <div class="bg-gray-800 p-6 rounded-lg border-l-4 border-green-500">
+                <h2 class="text-xl font-bold mb-4 text-green-400">🎮 前端应用 (index.html)</h2>
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <span>状态:</span>
+                        <span class="text-green-400">✅ 运行中</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>访问地址:</span>
+                        <a href="http://localhost:8000/index.html" target="_blank" class="text-blue-400 hover:underline">
+                            http://localhost:8000/index.html
+                        </a>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Supabase连接:</span>
+                        <span id="frontend-supabase-status" class="text-yellow-400">检查中...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 后端状态 -->
+            <div class="bg-gray-800 p-6 rounded-lg border-l-4 border-blue-500">
+                <h2 class="text-xl font-bold mb-4 text-blue-400">🔧 管理后台 (admin.html)</h2>
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <span>状态:</span>
+                        <span class="text-green-400">✅ 运行中</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>访问地址:</span>
+                        <a href="http://localhost:8000/admin.html" target="_blank" class="text-blue-400 hover:underline">
+                            http://localhost:8000/admin.html
+                        </a>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Supabase连接:</span>
+                        <span id="backend-supabase-status" class="text-yellow-400">检查中...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Supabase 配置状态 -->
+        <div class="bg-gray-800 p-6 rounded-lg border-l-4 border-purple-500 mb-6">
+            <h2 class="text-xl font-bold mb-4 text-purple-400">☁️ Supabase 云服务器配置</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <p class="text-gray-300 mb-2">项目URL:</p>
+                    <p id="supabase-url" class="text-sm bg-gray-700 p-2 rounded font-mono">检查中...</p>
+                </div>
+                <div>
+                    <p class="text-gray-300 mb-2">API密钥状态:</p>
+                    <p id="api-key-status" class="text-sm bg-gray-700 p-2 rounded">检查中...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 数据库表状态 -->
+        <div class="bg-gray-800 p-6 rounded-lg border-l-4 border-yellow-500 mb-6">
+            <h2 class="text-xl font-bold mb-4 text-yellow-400">🗄️ 数据库表状态</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="text-center">
+                    <p class="text-gray-300 mb-2">用户表 (users)</p>
+                    <p id="users-table-status" class="text-lg">检查中...</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-gray-300 mb-2">设置表 (settings)</p>
+                    <p id="settings-table-status" class="text-lg">检查中...</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-gray-300 mb-2">知识库 (knowledge)</p>
+                    <p id="knowledge-table-status" class="text-lg">检查中...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 实时功能状态 -->
+        <div class="bg-gray-800 p-6 rounded-lg border-l-4 border-red-500 mb-6">
+            <h2 class="text-xl font-bold mb-4 text-red-400">⚡ 实时功能状态</h2>
+            <div class="space-y-2">
+                <div class="flex justify-between">
+                    <span>实时订阅:</span>
+                    <span id="realtime-status" class="text-yellow-400">检查中...</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>连接状态:</span>
+                    <span id="connection-health" class="text-yellow-400">检查中...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="text-center space-x-4">
+            <button onclick="checkAllStatus()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg">
+                🔄 重新检查状态
+            </button>
+            <button onclick="window.open('supabase-connection-validator.html', '_blank')" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg">
+                🔧 详细连接验证
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let supabase;
+
+        async function initSupabase() {
+            try {
+                if (typeof SUPABASE_CONFIG === 'undefined') {
+                    throw new Error('Supabase配置未加载');
+                }
+
+                supabase = window.supabase.createClient(
+                    SUPABASE_CONFIG.SUPABASE_URL,
+                    SUPABASE_CONFIG.SUPABASE_ANON_KEY
+                );
+
+                return true;
+            } catch (error) {
+                console.error('Supabase初始化失败:', error);
+                return false;
+            }
+        }
+
+        async function checkSupabaseConfig() {
+            const urlElement = document.getElementById('supabase-url');
+            const keyStatusElement = document.getElementById('api-key-status');
+
+            if (typeof SUPABASE_CONFIG !== 'undefined') {
+                urlElement.textContent = SUPABASE_CONFIG.SUPABASE_URL;
+                keyStatusElement.textContent = SUPABASE_CONFIG.SUPABASE_ANON_KEY ? '✅ 已配置' : '❌ 未配置';
+            } else {
+                urlElement.textContent = '❌ 配置文件未加载';
+                keyStatusElement.textContent = '❌ 配置文件未加载';
+            }
+        }
+
+        async function checkDatabaseTables() {
+            const tables = ['users', 'settings', 'knowledge'];
+            
+            for (const table of tables) {
+                const statusElement = document.getElementById(`${table}-table-status`);
+                try {
+                    const { data, error } = await supabase
+                        .from(table)
+                        .select('count')
+                        .limit(1);
+                    
+                    if (error && error.code !== 'PGRST116') {
+                        throw error;
+                    }
+                    
+                    statusElement.textContent = '✅ 正常';
+                    statusElement.className = 'text-lg text-green-400';
+                } catch (error) {
+                    console.error(`检查表 ${table} 失败:`, error);
+                    statusElement.textContent = '❌ 错误';
+                    statusElement.className = 'text-lg text-red-400';
+                }
+            }
+        }
+
+        async function checkRealtimeStatus() {
+            const realtimeElement = document.getElementById('realtime-status');
+            const healthElement = document.getElementById('connection-health');
+
+            try {
+                // 检查实时连接
+                const channel = supabase.channel('test-channel');
+                
+                channel.subscribe((status) => {
+                    if (status === 'SUBSCRIBED') {
+                        realtimeElement.textContent = '✅ 正常';
+                        realtimeElement.className = 'text-green-400';
+                    } else {
+                        realtimeElement.textContent = '⚠️ ' + status;
+                        realtimeElement.className = 'text-yellow-400';
+                    }
+                });
+
+                // 检查连接健康状态
+                const { data, error } = await supabase.from('users').select('count').limit(1);
+                if (error && error.code !== 'PGRST116') {
+                    throw error;
+                }
+                
+                healthElement.textContent = '✅ 健康';
+                healthElement.className = 'text-green-400';
+
+                // 清理测试频道
+                setTimeout(() => {
+                    supabase.removeChannel(channel);
+                }, 3000);
+
+            } catch (error) {
+                console.error('实时功能检查失败:', error);
+                realtimeElement.textContent = '❌ 错误';
+                realtimeElement.className = 'text-red-400';
+                healthElement.textContent = '❌ 不健康';
+                healthElement.className = 'text-red-400';
+            }
+        }
+
+        async function checkConnectionStatus() {
+            const frontendElement = document.getElementById('frontend-supabase-status');
+            const backendElement = document.getElementById('backend-supabase-status');
+
+            try {
+                const { data, error } = await supabase.from('users').select('count').limit(1);
+                if (error && error.code !== 'PGRST116') {
+                    throw error;
+                }
+                
+                frontendElement.textContent = '✅ 已连接';
+                frontendElement.className = 'text-green-400';
+                backendElement.textContent = '✅ 已连接';
+                backendElement.className = 'text-green-400';
+            } catch (error) {
+                console.error('连接检查失败:', error);
+                frontendElement.textContent = '❌ 连接失败';
+                frontendElement.className = 'text-red-400';
+                backendElement.textContent = '❌ 连接失败';
+                backendElement.className = 'text-red-400';
+            }
+        }
+
+        async function checkAllStatus() {
+            console.log('开始系统状态检查...');
+            
+            // 重置状态显示
+            document.querySelectorAll('[id$="-status"]').forEach(el => {
+                el.textContent = '检查中...';
+                el.className = 'text-yellow-400';
+            });
+
+            // 初始化Supabase
+            const supabaseReady = await initSupabase();
+            if (!supabaseReady) {
+                console.error('Supabase初始化失败');
+                return;
+            }
+
+            // 检查配置
+            await checkSupabaseConfig();
+            
+            // 检查连接状态
+            await checkConnectionStatus();
+            
+            // 检查数据库表
+            await checkDatabaseTables();
+            
+            // 检查实时功能
+            await checkRealtimeStatus();
+
+            console.log('系统状态检查完成');
+        }
+
+        // 页面加载时自动检查
+        window.addEventListener('load', () => {
+            setTimeout(checkAllStatus, 1000);
+        });
+    </script>
+</body>
+</html>

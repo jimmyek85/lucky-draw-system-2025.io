@@ -3,11 +3,14 @@
 // 您可以从 Supabase Dashboard 获取这些信息: https://app.supabase.com/
 
 const SUPABASE_CONFIG = {
-    // Supabase 项目 URL
+    // Supabase 项目 URL - 用户云服务器
     SUPABASE_URL: 'https://ibirsieaeozhsvleegri.supabase.co',
     
-    // Supabase anon 公钥
+    // Supabase anon 公钥 - 用户云服务器
     SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImliaXJzaWVhZW96aHN2bGVlZ3JpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4OTQ5MzIsImV4cCI6MjA2OTQ3MDkzMn0.MYzEhk1XYS9d4n-ToLZIb4AsUjzoiOndNeIqdDdY0SM',
+    
+    // Service Role Key (用于管理员操作)
+    SUPABASE_SERVICE_ROLE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImliaXJzaWVhZW96aHN2bGVlZ3JpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Mzg5NDkzMiwiZXhwIjoyMDY5NDcwOTMyfQ.1rUGHUP_3d3rId_RVmyoO1bNonrchF6rGTogKFpz3b0',
     
     // 数据库表名配置
     TABLES: {
@@ -37,7 +40,7 @@ function isSupabaseConfigured() {
     return SUPABASE_CONFIG.SUPABASE_URL && 
            SUPABASE_CONFIG.SUPABASE_URL !== 'https://your-project-id.supabase.co' && 
            SUPABASE_CONFIG.SUPABASE_ANON_KEY && 
-           SUPABASE_CONFIG.SUPABASE_ANON_KEY !== 'your-supabase-anon-key-here' &&
+           SUPABASE_CONFIG.SUPABASE_ANON_KEY !== 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImliaXJzaWVhZW96aHN2bGVlZ3JpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4OTQ5MzIsImV4cCI6MjA2OTQ3MDkzMn0.MYzEhk1XYS9d4n-ToLZIb4AsUjzoiOndNeIqdDdY0SM' &&
            SUPABASE_CONFIG.SUPABASE_URL.includes('.supabase.co') &&
            SUPABASE_CONFIG.SUPABASE_ANON_KEY.startsWith('eyJ');
 }

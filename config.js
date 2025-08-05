@@ -45,7 +45,7 @@ const LOTTERY_CONFIG = {
     INITIAL_CHANCES: 1,
     
     // 每日免费抽奖机会（如果启用）
-    DAILY_FREE_CHANCES: 1,
+    DAILY_FREE_CHANCES: 0,
     
     // 是否启用每日免费机会
     ENABLE_DAILY_FREE: false,
@@ -54,7 +54,7 @@ const LOTTERY_CONFIG = {
     SPIN_AGAIN_BONUS: 1,
     
     // 最大累积抽奖机会数（防止无限累积）
-    MAX_ACCUMULATED_CHANCES: 10,
+    MAX_ACCUMULATED_CHANCES: 3,
     
     // 是否允许管理员手动添加机会
     ALLOW_ADMIN_ADD_CHANCES: true
